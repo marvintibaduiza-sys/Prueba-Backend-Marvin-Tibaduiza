@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Exceptions\ConflictException;
+use App\Models\Currency;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,13 +27,13 @@ class ErrorHandlingTest extends TestCase
     public function test_unknown_model_id_returns_json_404_without_leaking_model_name(): void
     {
         Route::middleware(SubstituteBindings::class)
-            ->get('/api/v1/_users/{user}', fn (User $user) => $user);
+            ->get('/api/v1/_currencies/{currency}', fn (Currency $currency) => $currency);
 
-        $this->get('/api/v1/_users/999')
+        $this->get('/api/v1/_currencies/999')
             ->assertNotFound()
             ->assertExactJson(['message' => 'Resource not found.']);
 
-        $this->get('/api/v1/_users/abc')
+        $this->get('/api/v1/_currencies/abc')
             ->assertNotFound()
             ->assertExactJson(['message' => 'Resource not found.']);
     }

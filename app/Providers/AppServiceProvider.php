@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Enums\PermissionName;
+use App\Models\User;
 use App\Policies\RolePolicy;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -43,6 +46,34 @@ class AppServiceProvider extends ServiceProvider
             'user' => '[0-9]+',
             'role' => '[0-9]+',
         ]);
+
+        $this->bindManagedModels();
+    }
+
+    /**
+     * Users and roles are looked up only for callers who manage them; anyone else gets 403
+     * for every id, so the 403/404 difference cannot reveal which accounts or roles exist.
+     */
+    private function bindManagedModels(): void
+    {
+        $bindings = [
+            'user' => [User::class, [PermissionName::UsersView, PermissionName::UsersUpdate, PermissionName::UsersDelete]],
+            'role' => [Role::class, [PermissionName::RolesView, PermissionName::RolesUpdate, PermissionName::RolesDelete]],
+        ];
+
+        foreach ($bindings as $parameter => [$model, $permissions]) {
+            Route::bind($parameter, function (string $value) use ($model, $permissions) {
+                $canManage = request()->user()?->hasAnyPermission(
+                    array_map(fn (PermissionName $permission) => $permission->value, $permissions)
+                );
+
+                if (! $canManage) {
+                    throw new AuthorizationException;
+                }
+
+                return $model::findOrFail($value);
+            });
+        }
     }
 
     private function configureRateLimiting(): void

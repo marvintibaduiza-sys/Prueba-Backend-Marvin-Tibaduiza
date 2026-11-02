@@ -102,6 +102,14 @@ class RoleTest extends TestCase
         $this->getJson(self::URI.'/999')->assertNotFound();
     }
 
+    public function test_users_without_role_permissions_cannot_probe_which_ids_exist(): void
+    {
+        $this->actingAsSeller();
+
+        $this->getJson(self::URI.'/999')->assertForbidden();
+        $this->deleteJson(self::URI.'/999')->assertForbidden();
+    }
+
     public function test_guest_cannot_show_a_role(): void
     {
         $this->getJson(self::URI."/{$this->role('seller')->id}")->assertUnauthorized();

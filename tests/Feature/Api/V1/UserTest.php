@@ -428,6 +428,41 @@ class UserTest extends TestCase
         $this->postJson(self::URI, $this->payload(['role' => 'seller']))->assertCreated();
     }
 
+    public function test_user_with_several_roles_is_still_protected_as_last_admin(): void
+    {
+        // Only admin, but also holding the seller role: sending "seller" is still a demotion.
+        $lastAdmin = $this->userWithRole(RoleName::Admin)->assignRole(RoleName::Seller->value);
+        $coAdmin = User::factory()->create();
+        $coAdmin->assignRole(Role::create(['name' => 'co-admin', 'guard_name' => 'web'])->givePermissionTo(
+            array_map(fn (PermissionName $permission) => $permission->value, PermissionName::cases())
+        ));
+        Sanctum::actingAs($coAdmin);
+
+        $this->putJson(self::URI."/{$lastAdmin->id}", ['role' => 'seller'])
+            ->assertStatus(409)
+            ->assertExactJson(['message' => 'The last administrator cannot be removed or demoted.']);
+
+        $this->assertTrue($lastAdmin->fresh()->hasRole('admin'));
+    }
+
+    public function test_user_with_several_roles_cannot_drop_own_admin_role(): void
+    {
+        $admin = $this->actingAsAdmin();
+        $admin->assignRole(RoleName::Seller->value);
+
+        $this->putJson(self::URI."/{$admin->id}", ['role' => 'seller'])
+            ->assertStatus(409)
+            ->assertExactJson(['message' => 'You cannot change your own role.']);
+    }
+
+    public function test_users_without_user_permissions_cannot_probe_which_ids_exist(): void
+    {
+        $this->actingAsSeller();
+
+        $this->getJson(self::URI.'/999')->assertForbidden();
+        $this->getJson(self::URI.'/'.User::factory()->create()->id)->assertForbidden();
+    }
+
     // -------------------------------------------------------------- destroy
 
     public function test_admin_deletes_only_the_target_user_and_revokes_its_tokens(): void

@@ -164,7 +164,8 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user): UserResource|JsonResponse
     {
         $newRole = $request->validated('role');
-        $changesRole = $newRole !== null && ! $user->hasRole($newRole);
+        // Users end with exactly the sent role, so any other current role (e.g. admin) is a change.
+        $changesRole = $newRole !== null && $user->getRoleNames()->all() !== [$newRole];
 
         if ($changesRole) {
             Gate::authorize('assignRole', [User::class, $newRole]);

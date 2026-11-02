@@ -25,11 +25,14 @@ class UserSeeder extends Seeder
             return;
         }
 
-        $user = User::updateOrCreate(
+        // firstOrCreate: re-seeding never overwrites a password or role changed later through the API.
+        $user = User::firstOrCreate(
             ['email' => $account['email']],
             ['name' => $account['name'], 'password' => $account['password']],
         );
 
-        $user->syncRoles([$role->value]);
+        if ($user->wasRecentlyCreated) {
+            $user->assignRole($role->value);
+        }
     }
 }

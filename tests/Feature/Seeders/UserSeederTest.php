@@ -49,6 +49,20 @@ class UserSeederTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'seller@test.com']);
     }
 
+    public function test_reseeding_keeps_password_and_roles_changed_later(): void
+    {
+        $this->seed(UserSeeder::class);
+        $seller = User::where('email', 'seller@test.com')->firstOrFail();
+        $seller->update(['password' => 'changed-by-api-1']);
+        $seller->syncRoles([RoleName::Admin->value]);
+
+        $this->seed(UserSeeder::class);
+
+        $seller->refresh();
+        $this->assertTrue(Hash::check('changed-by-api-1', $seller->password));
+        $this->assertSame([RoleName::Admin->value], $seller->getRoleNames()->all());
+    }
+
     public function test_seeder_is_idempotent(): void
     {
         $this->seed(UserSeeder::class);
