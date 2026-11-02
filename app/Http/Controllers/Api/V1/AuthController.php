@@ -15,14 +15,21 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
+     * Bcrypt hash of a random value (cost 12), checked when the email is unknown so both
+     * login paths take the same time and response timing cannot reveal existing accounts.
+     */
+    private const DUMMY_HASH = '$2y$12$p8vUU3vDIOy1x4RXQef0Q.4QuaEEvapr5e5vB4nsiaufAIyFGLvlu';
+
+    /**
      * Exchange valid credentials for an expiring Sanctum token.
      */
     public function login(LoginRequest $request): AuthTokenResource
     {
         $user = User::where('email', $request->validated('email'))->first();
+        $passwordMatches = Hash::check($request->validated('password'), $user?->password ?? self::DUMMY_HASH);
 
         // Same message for unknown email and wrong password: never reveal which accounts exist.
-        if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
+        if (! $user || ! $passwordMatches) {
             throw ValidationException::withMessages(['email' => __('auth.failed')]);
         }
 

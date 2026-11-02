@@ -6,6 +6,7 @@ use App\Enums\RoleName;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -64,6 +65,17 @@ class AuthTest extends TestCase
         $this->login(email: 'nobody@test.com')
             ->assertUnprocessable()
             ->assertJsonPath('errors.email.0', 'These credentials do not match our records.');
+    }
+
+    public function test_unknown_email_still_runs_a_password_hash_check(): void
+    {
+        $this->createUser();
+        Hash::spy();
+
+        $this->login(email: 'nobody@test.com')->assertUnprocessable();
+
+        // Equal work on both paths: response time must not reveal whether the email exists.
+        Hash::shouldHaveReceived('check')->once();
     }
 
     public static function invalidLoginPayloads(): array
