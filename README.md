@@ -39,7 +39,7 @@ php artisan migrate --seed
 php artisan serve
 ```
 
-The API is available at `http://127.0.0.1:8000/api/v1` and the documentation at `http://127.0.0.1:8000/api/documentation`.
+The API is available at `http://127.0.0.1:8000/api` and the documentation at `http://127.0.0.1:8000/api/documentation`.
 
 ## Environment variables
 
@@ -64,9 +64,9 @@ No credentials are stored in the code. An account without email or password is s
 
 ## Authentication
 
-1. `POST /api/v1/auth/login` with `email` and `password` returns a token.
+1. `POST /api/auth/login` with `email` and `password` returns a token.
 2. Send it in every request: `Authorization: Bearer <token>`.
-3. The token expires after 60 minutes. `POST /api/v1/auth/logout` revokes it immediately.
+3. The token expires after 60 minutes. `POST /api/auth/logout` revokes it immediately.
 
 Security measures:
 
@@ -91,7 +91,7 @@ Protections: the `admin` role cannot be modified or deleted, nobody can change t
 
 ## Endpoints
 
-All paths are relative to `/api/v1`.
+All paths are relative to `/api`.
 
 | Method | Path | Permission |
 |---|---|---|
@@ -164,7 +164,7 @@ Route (grouped, auth:sanctum, only the verbs needed)
 
 | Folder | Content |
 |---|---|
-| `app/Http/Controllers/Api/V1` | Controllers (`v1` versioned) |
+| `app/Http/Controllers/Api` | API controllers |
 | `app/Http/Requests` | Form Requests (validation and authorization) |
 | `app/Http/Resources` | API Resources |
 | `app/Policies` | Permission checks per model |

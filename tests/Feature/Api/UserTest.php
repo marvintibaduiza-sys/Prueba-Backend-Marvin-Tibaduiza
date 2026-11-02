@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Api\V1;
+namespace Tests\Feature\Api;
 
 use App\Enums\PermissionName;
 use App\Enums\RoleName;
@@ -18,7 +18,7 @@ class UserTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const URI = '/api/v1/users';
+    private const URI = '/api/users';
 
     protected function setUp(): void
     {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Api\V1;
+namespace Tests\Feature\Api;
 
 use App\Models\Currency;
 use App\Models\Product;
@@ -16,7 +16,7 @@ class ProductTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const URI = '/api/v1/products';
+    private const URI = '/api/products';
 
     protected function setUp(): void
     {

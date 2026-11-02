@@ -25,17 +25,18 @@ class OpenApiDocumentationTest extends TestCase
     }
 
     /**
-     * Every documented API route as "method path" pairs, relative to the /api/v1 server URL.
+     * Every documented API route as "method path" pairs, relative to the /api server URL.
      *
      * @return list<array{0: string, 1: string}>
      */
     private function apiOperations(): array
     {
         return collect(Route::getRoutes()->getRoutes())
-            ->filter(fn (RouteDefinition $route) => str_starts_with($route->uri(), 'api/v1/'))
+            // Only our API controllers (the Swagger UI routes also live under api/).
+            ->filter(fn (RouteDefinition $route) => str_starts_with($route->getActionName(), 'App\\Http\\Controllers\\Api\\'))
             ->flatMap(fn (RouteDefinition $route) => collect($route->methods())
                 ->reject(fn (string $method) => in_array($method, ['HEAD', 'PATCH'], true))
-                ->map(fn (string $method) => [strtolower($method), '/'.substr($route->uri(), strlen('api/v1/'))]))
+                ->map(fn (string $method) => [strtolower($method), '/'.substr($route->uri(), strlen('api/'))]))
             ->values()
             ->all();
     }

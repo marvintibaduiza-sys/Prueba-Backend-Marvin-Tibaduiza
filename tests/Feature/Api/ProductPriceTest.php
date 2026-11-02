@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Api\V1;
+namespace Tests\Feature\Api;
 
 use App\Models\Currency;
 use App\Models\Product;
@@ -32,7 +32,7 @@ class ProductPriceTest extends TestCase
 
     private function uri(?Product $product = null): string
     {
-        return '/api/v1/products/'.($product ?? $this->product)->id.'/prices';
+        return '/api/products/'.($product ?? $this->product)->id.'/prices';
     }
 
     /**
@@ -79,7 +79,7 @@ class ProductPriceTest extends TestCase
     {
         $this->actingAsAdmin();
 
-        $this->getJson('/api/v1/products/999/prices')->assertNotFound();
+        $this->getJson('/api/products/999/prices')->assertNotFound();
     }
 
     // ---------------------------------------------------------------- store
@@ -117,7 +117,7 @@ class ProductPriceTest extends TestCase
     {
         $this->actingAsAdmin();
 
-        $this->postJson('/api/v1/products/999/prices', $this->payload())->assertNotFound();
+        $this->postJson('/api/products/999/prices', $this->payload())->assertNotFound();
     }
 
     public static function invalidPayloads(): array

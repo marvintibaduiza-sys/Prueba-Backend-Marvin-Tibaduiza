@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Api\V1;
+namespace Tests\Feature\Api;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -9,7 +9,7 @@ class PermissionTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const URI = '/api/v1/permissions';
+    private const URI = '/api/permissions';
 
     public function test_admin_lists_all_18_permissions(): void
     {

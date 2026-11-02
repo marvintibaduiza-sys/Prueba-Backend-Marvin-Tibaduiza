@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Api\V1;
+namespace Tests\Feature\Api;
 
 use App\Enums\RoleName;
 use App\Models\User;
@@ -29,7 +29,7 @@ class AuthTest extends TestCase
 
     private function login(string $email = 'user@test.com', string $password = self::PASSWORD): TestResponse
     {
-        return $this->postJson('/api/v1/auth/login', ['email' => $email, 'password' => $password]);
+        return $this->postJson('/api/auth/login', ['email' => $email, 'password' => $password]);
     }
 
     public function test_login_returns_bearer_token_with_expiration(): void
@@ -90,7 +90,7 @@ class AuthTest extends TestCase
     #[DataProvider('invalidLoginPayloads')]
     public function test_login_validation(array $payload, string $field): void
     {
-        $this->postJson('/api/v1/auth/login', $payload)
+        $this->postJson('/api/auth/login', $payload)
             ->assertUnprocessable()
             ->assertJsonValidationErrors($field);
     }
@@ -100,12 +100,12 @@ class AuthTest extends TestCase
         $payload = ['email' => ['user@test.com'], 'password' => 'secret'];
 
         for ($i = 0; $i < 5; $i++) {
-            $this->postJson('/api/v1/auth/login', $payload)
+            $this->postJson('/api/auth/login', $payload)
                 ->assertUnprocessable()
                 ->assertJsonValidationErrors('email');
         }
 
-        $this->postJson('/api/v1/auth/login', $payload)->assertTooManyRequests();
+        $this->postJson('/api/auth/login', $payload)->assertTooManyRequests();
     }
 
     public function test_login_is_throttled_after_five_attempts(): void
@@ -121,7 +121,7 @@ class AuthTest extends TestCase
 
     public function test_me_without_token_returns_401(): void
     {
-        $this->getJson('/api/v1/auth/me')
+        $this->getJson('/api/auth/me')
             ->assertUnauthorized()
             ->assertExactJson(['message' => 'Unauthenticated.']);
     }
@@ -131,7 +131,7 @@ class AuthTest extends TestCase
         $user = $this->createUser();
         $token = $this->login()->json('data.token');
 
-        $response = $this->withToken($token)->getJson('/api/v1/auth/me');
+        $response = $this->withToken($token)->getJson('/api/auth/me');
 
         $response->assertOk()
             ->assertJsonPath('data.id', $user->id)
@@ -147,14 +147,14 @@ class AuthTest extends TestCase
         $this->createUser();
         $token = $this->login()->json('data.token');
 
-        $this->withToken($token)->postJson('/api/v1/auth/logout')
+        $this->withToken($token)->postJson('/api/auth/logout')
             ->assertOk()
             ->assertExactJson(['message' => 'Logged out.']);
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
 
         $this->app['auth']->forgetGuards();
-        $this->withToken($token)->getJson('/api/v1/auth/me')->assertUnauthorized();
+        $this->withToken($token)->getJson('/api/auth/me')->assertUnauthorized();
     }
 
     public function test_expired_token_is_rejected(): void
@@ -164,7 +164,7 @@ class AuthTest extends TestCase
 
         $this->travel(61)->minutes();
 
-        $this->withToken($token)->getJson('/api/v1/auth/me')->assertUnauthorized();
+        $this->withToken($token)->getJson('/api/auth/me')->assertUnauthorized();
     }
 
     public function test_token_is_still_valid_before_expiration(): void
@@ -174,6 +174,6 @@ class AuthTest extends TestCase
 
         $this->travel(59)->minutes();
 
-        $this->withToken($token)->getJson('/api/v1/auth/me')->assertOk();
+        $this->withToken($token)->getJson('/api/auth/me')->assertOk();
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Api\V1;
+namespace Tests\Feature\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -46,9 +46,9 @@ class BaseControllerTest extends TestCase
     public function test_per_page_is_clamped(string $query, int $expected): void
     {
         $controller = $this->probeController();
-        Route::get('/api/v1/_per_page', fn (Request $request) => ['per_page' => $controller->exposePerPage($request)]);
+        Route::get('/api/_per_page', fn (Request $request) => ['per_page' => $controller->exposePerPage($request)]);
 
-        $this->getJson('/api/v1/_per_page'.$query)
+        $this->getJson('/api/_per_page'.$query)
             ->assertOk()
             ->assertExactJson(['per_page' => $expected]);
     }
@@ -57,9 +57,9 @@ class BaseControllerTest extends TestCase
     {
         Log::shouldReceive('error')->once();
         $controller = $this->probeController();
-        Route::get('/api/v1/_server_error', fn () => $controller->exposeServerError(new RuntimeException('secret')));
+        Route::get('/api/_server_error', fn () => $controller->exposeServerError(new RuntimeException('secret')));
 
-        $response = $this->getJson('/api/v1/_server_error');
+        $response = $this->getJson('/api/_server_error');
 
         $response->assertStatus(500)
             ->assertExactJson(['message' => 'An unexpected error occurred.']);

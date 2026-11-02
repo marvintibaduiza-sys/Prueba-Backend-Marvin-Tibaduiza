@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Api\V1;
+namespace Tests\Feature\Api;
 
 use App\Models\Product;
 use App\Models\User;
@@ -17,7 +17,7 @@ class RoleTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const URI = '/api/v1/roles';
+    private const URI = '/api/roles';
 
     protected function setUp(): void
     {
@@ -242,7 +242,7 @@ class RoleTest extends TestCase
         Sanctum::actingAs($seller);
         $product = Product::factory()->create();
 
-        $this->deleteJson("/api/v1/products/{$product->id}")->assertNoContent();
+        $this->deleteJson("/api/products/{$product->id}")->assertNoContent();
     }
 
     public function test_admin_role_cannot_be_modified(): void
@@ -403,8 +403,8 @@ class RoleTest extends TestCase
         Sanctum::actingAs($auditor);
         $product = Product::factory()->create();
 
-        $this->getJson('/api/v1/products')->assertOk();
-        $this->deleteJson("/api/v1/products/{$product->id}")->assertForbidden();
-        $this->getJson('/api/v1/currencies')->assertForbidden();
+        $this->getJson('/api/products')->assertOk();
+        $this->deleteJson("/api/products/{$product->id}")->assertForbidden();
+        $this->getJson('/api/currencies')->assertForbidden();
     }
 }

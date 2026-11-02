@@ -25,7 +25,7 @@ use OpenApi\Attributes as OA;
         TEXT,
     title: 'Products API',
 )]
-#[OA\Server(url: '/api/v1', description: 'API version 1')]
+#[OA\Server(url: '/api', description: 'API')]
 #[OA\SecurityScheme(
     securityScheme: 'sanctum',
     type: 'http',
