@@ -16,12 +16,38 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Sanctum\PersonalAccessToken;
+use OpenApi\Attributes as OA;
 use Throwable;
 
 class UserController extends Controller
 {
     private const LAST_ADMIN_MESSAGE = 'The last administrator cannot be removed or demoted.';
 
+    #[OA\Get(
+        path: '/users',
+        operationId: 'users.index',
+        description: 'Requires `users.view`. Paginated list ordered by id; each user includes roles and effective permissions.',
+        summary: 'List users',
+        security: [['sanctum' => []]],
+        tags: ['Users'],
+        parameters: [
+            new OA\Parameter(ref: '#/components/parameters/PerPage'),
+            new OA\Parameter(ref: '#/components/parameters/Page'),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'A page of users.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/User')),
+                    new OA\Property(property: 'links', ref: '#/components/schemas/PaginationLinks'),
+                    new OA\Property(property: 'meta', ref: '#/components/schemas/PaginationMeta'),
+                ]),
+            ),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthenticated'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+        ],
+    )]
     public function index(Request $request): AnonymousResourceCollection
     {
         Gate::authorize('viewAny', User::class);
@@ -31,6 +57,26 @@ class UserController extends Controller
         );
     }
 
+    #[OA\Post(
+        path: '/users',
+        operationId: 'users.store',
+        description: 'Requires `users.create`. Delegation rule: you can only assign a role whose permissions you all hold (403 "You cannot assign a role with permissions you do not hold.").',
+        summary: 'Create a user',
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/StoreUserRequest')),
+        tags: ['Users'],
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'User created.',
+                content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/User')]),
+            ),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthenticated'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 422, ref: '#/components/responses/ValidationFailed'),
+            new OA\Response(response: 500, ref: '#/components/responses/ServerError'),
+        ],
+    )]
     public function store(StoreUserRequest $request): JsonResponse
     {
         Gate::authorize('assignRole', [User::class, $request->validated('role')]);
@@ -51,6 +97,25 @@ class UserController extends Controller
         return (new UserResource($user->load('roles.permissions')))->response()->setStatusCode(201);
     }
 
+    #[OA\Get(
+        path: '/users/{user}',
+        operationId: 'users.show',
+        description: 'Requires `users.view`.',
+        summary: 'Show a user',
+        security: [['sanctum' => []]],
+        tags: ['Users'],
+        parameters: [new OA\Parameter(name: 'user', description: 'User ID.', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'The user with roles and effective permissions.',
+                content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/User')]),
+            ),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthenticated'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+        ],
+    )]
     public function show(User $user): UserResource
     {
         Gate::authorize('view', $user);
@@ -58,6 +123,37 @@ class UserController extends Controller
         return new UserResource($user->load('roles.permissions'));
     }
 
+    #[OA\Put(
+        path: '/users/{user}',
+        operationId: 'users.update',
+        description: <<<'TEXT'
+            Requires `users.update`. Partial update: only the fields sent are validated and changed (PATCH is also accepted).
+
+            Delegation rules (403): "You cannot manage a user with permissions you do not hold." and "You cannot assign a role with permissions you do not hold."
+
+            Conflicts (409): "You cannot change your own role." and "The last administrator cannot be removed or demoted."
+
+            Changing the password revokes every session of the user, except the current one when you change your own password.
+            TEXT,
+        summary: 'Update a user',
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/UpdateUserRequest')),
+        tags: ['Users'],
+        parameters: [new OA\Parameter(name: 'user', description: 'User ID.', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'User updated.',
+                content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/User')]),
+            ),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthenticated'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+            new OA\Response(response: 409, ref: '#/components/responses/Conflict'),
+            new OA\Response(response: 422, ref: '#/components/responses/ValidationFailed'),
+            new OA\Response(response: 500, ref: '#/components/responses/ServerError'),
+        ],
+    )]
     public function update(UpdateUserRequest $request, User $user): UserResource|JsonResponse
     {
         $newRole = $request->validated('role');
@@ -102,6 +198,29 @@ class UserController extends Controller
         return new UserResource($user->load('roles.permissions'));
     }
 
+    #[OA\Delete(
+        path: '/users/{user}',
+        operationId: 'users.destroy',
+        description: <<<'TEXT'
+            Requires `users.delete`. Every session of the deleted user is revoked.
+
+            Delegation rule (403): "You cannot manage a user with permissions you do not hold."
+
+            Conflicts (409): "You cannot delete your own account." and "The last administrator cannot be removed or demoted."
+            TEXT,
+        summary: 'Delete a user',
+        security: [['sanctum' => []]],
+        tags: ['Users'],
+        parameters: [new OA\Parameter(name: 'user', description: 'User ID.', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
+        responses: [
+            new OA\Response(response: 204, description: 'User deleted.'),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthenticated'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+            new OA\Response(response: 409, ref: '#/components/responses/Conflict'),
+            new OA\Response(response: 500, ref: '#/components/responses/ServerError'),
+        ],
+    )]
     public function destroy(Request $request, User $user): Response|JsonResponse
     {
         Gate::authorize('delete', $user);

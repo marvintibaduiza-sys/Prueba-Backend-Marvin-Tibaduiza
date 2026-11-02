@@ -1,0 +1,2288 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Products API",
+        "description": "RESTful API to manage products and their prices in multiple currencies.\n\n**Authentication:** call `POST /auth/login` to obtain a Bearer token (valid for 60 minutes),\nthen send it in the `Authorization: Bearer <token>` header. `POST /auth/logout` revokes it.\n\n**Authorization:** every endpoint requires a permission. The `admin` role has all of them;\nthe `seller` role can view, create and update products, view and register prices, and view currencies.\n\n**Money:** amounts are returned as strings with fixed decimals (e.g. `\"19.90\"`) to avoid floating-point errors.\n\n**Errors:** every error body has a `message`; validation errors (422) also include `errors` per field.",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/api/v1",
+            "description": "API version 1"
+        }
+    ],
+    "paths": {
+        "/auth/login": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Log in",
+                "description": "Public endpoint. Returns a Bearer token valid for 60 minutes. Unknown email and wrong password get the same 422 error on `email` (\"These credentials do not match our records.\"), so existing accounts are never revealed. Limited to 5 attempts per minute for each email + IP pair.",
+                "operationId": "auth.login",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Token issued.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AuthToken"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Log out",
+                "description": "Revokes only the token used for this request; other sessions of the user stay active. No permission required.",
+                "operationId": "auth.logout",
+                "responses": {
+                    "200": {
+                        "description": "Token revoked.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Logged out."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/auth/me": {
+            "get": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Current user",
+                "description": "Returns the authenticated user with roles and effective permissions. No permission required.",
+                "operationId": "auth.me",
+                "responses": {
+                    "200": {
+                        "description": "The authenticated user.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/currencies": {
+            "get": {
+                "tags": [
+                    "Currencies"
+                ],
+                "summary": "List currencies",
+                "description": "Requires `currencies.view`. Paginated list ordered by code.",
+                "operationId": "currencies.index",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/PerPage"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Page"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A page of currencies.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Currency"
+                                            }
+                                        },
+                                        "links": {
+                                            "$ref": "#/components/schemas/PaginationLinks"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Currencies"
+                ],
+                "summary": "Create a currency",
+                "description": "Requires `currencies.create`. `exchange_rate` is the number of units of the new currency per 1 USD. Name and code must be unique.",
+                "operationId": "currencies.store",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreCurrencyRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Currency created.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Currency"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/currencies/{currency}": {
+            "get": {
+                "tags": [
+                    "Currencies"
+                ],
+                "summary": "Show a currency",
+                "description": "Requires `currencies.view`.",
+                "operationId": "currencies.show",
+                "parameters": [
+                    {
+                        "name": "currency",
+                        "in": "path",
+                        "description": "Currency ID.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The currency.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Currency"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Currencies"
+                ],
+                "summary": "Update a currency",
+                "description": "Requires `currencies.update`. Partial update: only the fields sent are validated and changed (PATCH is also accepted). For the base currency (USD) the code cannot be changed and the exchange rate must stay 1 (422).",
+                "operationId": "currencies.update",
+                "parameters": [
+                    {
+                        "name": "currency",
+                        "in": "path",
+                        "description": "Currency ID.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateCurrencyRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Currency updated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Currency"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Currencies"
+                ],
+                "summary": "Delete a currency",
+                "description": "Requires `currencies.delete`. Returns 409 \"The base currency cannot be deleted.\" for USD, and 409 \"The currency is in use and cannot be deleted.\" when a product uses it as base currency or has a price in it.",
+                "operationId": "currencies.destroy",
+                "parameters": [
+                    {
+                        "name": "currency",
+                        "in": "path",
+                        "description": "Currency ID.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Currency deleted."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/permissions": {
+            "get": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "List permissions",
+                "description": "Requires `roles.view`. Fixed catalog of permissions (seeded, never created through the API), sorted by name and not paginated.",
+                "operationId": "permissions.index",
+                "responses": {
+                    "200": {
+                        "description": "Every permission.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Permission"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/products": {
+            "get": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "List products",
+                "description": "Requires `products.view`. Paginated list ordered by id; each product includes its base currency (not the prices in other currencies).",
+                "operationId": "products.index",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/PerPage"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Page"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A page of products.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Product"
+                                            }
+                                        },
+                                        "links": {
+                                            "$ref": "#/components/schemas/PaginationLinks"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Create a product",
+                "description": "Requires `products.create`. The name accepts letters, spaces and hyphens only (digits are rejected). When `currency_id` is omitted the base currency (USD) is used.",
+                "operationId": "products.store",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreProductRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Product created.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Product"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/products/{product}": {
+            "get": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Show a product",
+                "description": "Requires `products.view`. Includes the base currency and the prices registered in other currencies.",
+                "operationId": "products.show",
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "description": "Product ID.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The product with its prices.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Product"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Update a product",
+                "description": "Requires `products.update`. Partial update: only the fields sent are validated and changed (PATCH is also accepted). `currency_id` cannot be a currency in which the product already has a price (422: \"The product already has a price in this currency.\").",
+                "operationId": "products.update",
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "description": "Product ID.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateProductRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Product updated, with its prices.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Product"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Delete a product",
+                "description": "Requires `products.delete`. The prices of the product in other currencies are deleted with it.",
+                "operationId": "products.destroy",
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "description": "Product ID.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Product deleted."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/products/{product}/prices": {
+            "get": {
+                "tags": [
+                    "Product prices"
+                ],
+                "summary": "List the prices of a product",
+                "description": "Requires `prices.view`. Paginated list, ordered by id, of the prices of the product in currencies other than its base currency.",
+                "operationId": "products.prices.index",
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "description": "Product ID.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/PerPage"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Page"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A page of prices.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ProductPrice"
+                                            }
+                                        },
+                                        "links": {
+                                            "$ref": "#/components/schemas/PaginationLinks"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Product prices"
+                ],
+                "summary": "Register a price of a product",
+                "description": "Requires `prices.create`. Registers the price of the product in another currency: the currency must differ from the product base currency (422) and the product can have only one price per currency (422: \"The product already has a price in this currency.\"). Returns 409 with that same message when a concurrent request registered the same currency first.",
+                "operationId": "products.prices.store",
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "description": "Product ID.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreProductPriceRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Price registered.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProductPrice"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/roles": {
+            "get": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "List roles",
+                "description": "Requires `roles.view`. Paginated list ordered by id; each role includes its permissions and the number of users holding it.",
+                "operationId": "roles.index",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/PerPage"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Page"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A page of roles.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Role"
+                                            }
+                                        },
+                                        "links": {
+                                            "$ref": "#/components/schemas/PaginationLinks"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Create a role",
+                "description": "Requires `roles.create`. Delegation rule: you can only grant permissions you hold (403 \"You cannot grant permissions you do not hold.\").",
+                "operationId": "roles.store",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreRoleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Role created.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Role"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/roles/{role}": {
+            "get": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Show a role",
+                "description": "Requires `roles.view`.",
+                "operationId": "roles.show",
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "description": "Role ID.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The role with its permissions and users count.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Role"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Update a role",
+                "description": "Requires `roles.update`. Partial update: only the fields sent are validated and changed (PATCH is also accepted); `permissions` replaces all the permissions of the role.\n\nDelegation rule (403): \"You cannot grant permissions you do not hold.\"\n\nConflict (409): \"The admin role cannot be modified or deleted.\"",
+                "operationId": "roles.update",
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "description": "Role ID.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateRoleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Role updated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Role"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Delete a role",
+                "description": "Requires `roles.delete`. Conflicts (409): \"The admin role cannot be modified or deleted.\" and \"The role is assigned to users and cannot be deleted.\"",
+                "operationId": "roles.destroy",
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "description": "Role ID.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Role deleted."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/users": {
+            "get": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "List users",
+                "description": "Requires `users.view`. Paginated list ordered by id; each user includes roles and effective permissions.",
+                "operationId": "users.index",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/PerPage"
+                    },
+                    {
+                        "$ref": "#/components/parameters/Page"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A page of users.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/User"
+                                            }
+                                        },
+                                        "links": {
+                                            "$ref": "#/components/schemas/PaginationLinks"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Create a user",
+                "description": "Requires `users.create`. Delegation rule: you can only assign a role whose permissions you all hold (403 \"You cannot assign a role with permissions you do not hold.\").",
+                "operationId": "users.store",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreUserRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User created.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/users/{user}": {
+            "get": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Show a user",
+                "description": "Requires `users.view`.",
+                "operationId": "users.show",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "description": "User ID.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The user with roles and effective permissions.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Update a user",
+                "description": "Requires `users.update`. Partial update: only the fields sent are validated and changed (PATCH is also accepted).\n\nDelegation rules (403): \"You cannot manage a user with permissions you do not hold.\" and \"You cannot assign a role with permissions you do not hold.\"\n\nConflicts (409): \"You cannot change your own role.\" and \"The last administrator cannot be removed or demoted.\"\n\nChanging the password revokes every session of the user, except the current one when you change your own password.",
+                "operationId": "users.update",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "description": "User ID.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateUserRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User updated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationFailed"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Delete a user",
+                "description": "Requires `users.delete`. Every session of the deleted user is revoked.\n\nDelegation rule (403): \"You cannot manage a user with permissions you do not hold.\"\n\nConflicts (409): \"You cannot delete your own account.\" and \"The last administrator cannot be removed or demoted.\"",
+                "operationId": "users.destroy",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "description": "User ID.",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "User deleted."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AuthToken": {
+                "required": [
+                    "token",
+                    "token_type",
+                    "expires_at",
+                    "user"
+                ],
+                "properties": {
+                    "token": {
+                        "description": "Send it as `Authorization: Bearer <token>`.",
+                        "type": "string",
+                        "example": "1|kD8fJ2mQx7pL0vN4tR6yB3cH9wZ5sA1eG8uI2oP4"
+                    },
+                    "token_type": {
+                        "type": "string",
+                        "example": "Bearer",
+                        "enum": [
+                            "Bearer"
+                        ]
+                    },
+                    "expires_at": {
+                        "description": "Moment the token stops being valid (60 minutes after login).",
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-01-15T11:30:00+00:00",
+                        "nullable": true
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/User"
+                    }
+                },
+                "type": "object"
+            },
+            "Currency": {
+                "required": [
+                    "id",
+                    "name",
+                    "code",
+                    "symbol",
+                    "exchange_rate",
+                    "created_at",
+                    "updated_at"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "A currency and its exchange rate against the base currency (USD).",
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Euro"
+                    },
+                    "code": {
+                        "description": "ISO 4217 code.",
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "symbol": {
+                        "type": "string",
+                        "example": "€"
+                    },
+                    "exchange_rate": {
+                        "description": "Units of this currency per 1 USD (USD is the base currency, rate 1). Example: EUR 0.89 means 1 USD = 0.89 EUR. Returned as a string with 6 decimals.",
+                        "type": "string",
+                        "example": "0.890000"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-01-15T10:30:00+00:00"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-01-15T10:30:00+00:00"
+                    }
+                },
+                "type": "object"
+            },
+            "Error": {
+                "required": [
+                    "message"
+                ],
+                "properties": {
+                    "message": {
+                        "description": "Body of every error response.",
+                        "type": "string",
+                        "example": "Resource not found."
+                    }
+                },
+                "type": "object"
+            },
+            "LoginRequest": {
+                "required": [
+                    "email",
+                    "password"
+                ],
+                "properties": {
+                    "email": {
+                        "description": "Credentials exchanged for a token.",
+                        "type": "string",
+                        "format": "email",
+                        "example": "admin@example.com",
+                        "maxLength": 255
+                    },
+                    "password": {
+                        "type": "string",
+                        "format": "password",
+                        "example": "password"
+                    }
+                },
+                "type": "object"
+            },
+            "PaginationLinks": {
+                "properties": {
+                    "first": {
+                        "description": "Navigation links of a paginated list.",
+                        "type": "string",
+                        "format": "uri"
+                    },
+                    "last": {
+                        "type": "string",
+                        "format": "uri"
+                    },
+                    "prev": {
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true
+                    },
+                    "next": {
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "PaginationMeta": {
+                "properties": {
+                    "current_page": {
+                        "description": "Page information of a paginated list.",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "from": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
+                    "last_page": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "path": {
+                        "type": "string",
+                        "format": "uri"
+                    },
+                    "per_page": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "to": {
+                        "type": "integer",
+                        "example": 15,
+                        "nullable": true
+                    },
+                    "total": {
+                        "type": "integer",
+                        "example": 1
+                    }
+                },
+                "type": "object"
+            },
+            "Permission": {
+                "required": [
+                    "id",
+                    "name"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "A permission from the fixed, seeded catalog.",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "products.view"
+                    }
+                },
+                "type": "object"
+            },
+            "Product": {
+                "required": [
+                    "id",
+                    "name",
+                    "description",
+                    "price",
+                    "tax_cost",
+                    "manufacturing_cost",
+                    "currency",
+                    "created_at",
+                    "updated_at"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "A product with its base price, costs and currency.",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Wireless Mouse"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Ergonomic wireless mouse with USB receiver."
+                    },
+                    "price": {
+                        "description": "Base price in the product currency, 2 decimals.",
+                        "type": "string",
+                        "example": "19.90"
+                    },
+                    "tax_cost": {
+                        "description": "Tax cost in the product currency, 2 decimals.",
+                        "type": "string",
+                        "example": "3.78"
+                    },
+                    "manufacturing_cost": {
+                        "description": "Manufacturing cost in the product currency, 2 decimals.",
+                        "type": "string",
+                        "example": "7.50"
+                    },
+                    "currency": {
+                        "$ref": "#/components/schemas/Currency"
+                    },
+                    "prices": {
+                        "description": "Prices in other currencies. Present only in the show and update responses.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProductPrice"
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-01-15T10:30:00+00:00"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-01-15T10:30:00+00:00"
+                    }
+                },
+                "type": "object"
+            },
+            "ProductPrice": {
+                "required": [
+                    "id",
+                    "product_id",
+                    "price",
+                    "currency",
+                    "created_at",
+                    "updated_at"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "Price of a product in a currency other than its base currency.",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "product_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "price": {
+                        "description": "Price in this currency, 2 decimals.",
+                        "type": "string",
+                        "example": "17.70"
+                    },
+                    "currency": {
+                        "$ref": "#/components/schemas/Currency"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-01-15T10:30:00+00:00"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-01-15T10:30:00+00:00"
+                    }
+                },
+                "type": "object"
+            },
+            "Role": {
+                "required": [
+                    "id",
+                    "name",
+                    "permissions",
+                    "users_count",
+                    "created_at",
+                    "updated_at"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "A role with its permissions and the number of users holding it.",
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "seller"
+                    },
+                    "permissions": {
+                        "description": "Names of the permissions granted by the role, sorted by name.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "currencies.view",
+                            "prices.create",
+                            "prices.view",
+                            "products.create",
+                            "products.update",
+                            "products.view"
+                        ]
+                    },
+                    "users_count": {
+                        "description": "Number of users holding the role.",
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-01-15T10:30:00+00:00"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-01-15T10:30:00+00:00"
+                    }
+                },
+                "type": "object"
+            },
+            "StoreCurrencyRequest": {
+                "required": [
+                    "name",
+                    "code",
+                    "symbol",
+                    "exchange_rate"
+                ],
+                "properties": {
+                    "name": {
+                        "description": "Must be unique.",
+                        "type": "string",
+                        "example": "British Pound",
+                        "maxLength": 50
+                    },
+                    "code": {
+                        "description": "3-letter uppercase ISO 4217 code. Must be unique.",
+                        "type": "string",
+                        "pattern": "^[A-Z]{3}$",
+                        "example": "GBP"
+                    },
+                    "symbol": {
+                        "type": "string",
+                        "example": "£",
+                        "maxLength": 5
+                    },
+                    "exchange_rate": {
+                        "description": "Units of this currency per 1 USD. Must be greater than 0, max 999999.999999, up to 6 decimals.",
+                        "type": "number",
+                        "example": 0.79,
+                        "maximum": 999999.999999,
+                        "minimum": 1.0e-6
+                    }
+                },
+                "type": "object"
+            },
+            "StoreProductPriceRequest": {
+                "required": [
+                    "currency_id",
+                    "price"
+                ],
+                "properties": {
+                    "currency_id": {
+                        "description": "ID of an existing currency. Must differ from the product base currency, and the product must not have a price in it yet.",
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "price": {
+                        "description": "Price in that currency. Must be greater than 0, max 9999999999.99, up to 2 decimals.",
+                        "type": "number",
+                        "example": 17.7,
+                        "maximum": 9999999999.99,
+                        "minimum": 0.01
+                    }
+                },
+                "type": "object"
+            },
+            "StoreProductRequest": {
+                "required": [
+                    "name",
+                    "description",
+                    "price",
+                    "tax_cost",
+                    "manufacturing_cost"
+                ],
+                "properties": {
+                    "name": {
+                        "description": "Letters (any language), spaces and hyphens only; digits are rejected.",
+                        "type": "string",
+                        "pattern": "^[\\p{L}\\s\\-]+$",
+                        "example": "Wireless Mouse",
+                        "maxLength": 150
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Ergonomic wireless mouse with USB receiver.",
+                        "maxLength": 1000
+                    },
+                    "price": {
+                        "description": "Base price in the product currency. Must be greater than 0, max 9999999999.99, up to 2 decimals.",
+                        "type": "number",
+                        "example": 19.9,
+                        "maximum": 9999999999.99,
+                        "minimum": 0.01
+                    },
+                    "currency_id": {
+                        "description": "ID of an existing currency. Optional: defaults to the base currency (USD).",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "tax_cost": {
+                        "description": "Tax cost in the product currency. 0 or greater, max 9999999999.99, up to 2 decimals.",
+                        "type": "number",
+                        "example": 3.78,
+                        "maximum": 9999999999.99,
+                        "minimum": 0
+                    },
+                    "manufacturing_cost": {
+                        "description": "Manufacturing cost in the product currency. 0 or greater, max 9999999999.99, up to 2 decimals.",
+                        "type": "number",
+                        "example": 7.5,
+                        "maximum": 9999999999.99,
+                        "minimum": 0
+                    }
+                },
+                "type": "object"
+            },
+            "StoreRoleRequest": {
+                "required": [
+                    "name",
+                    "permissions"
+                ],
+                "properties": {
+                    "name": {
+                        "description": "Lowercase; starts with a letter and may contain letters, numbers, dashes and underscores. Must be unique.",
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]*$",
+                        "example": "auditor",
+                        "maxLength": 50
+                    },
+                    "permissions": {
+                        "description": "At least one distinct, existing permission name. You can only grant permissions you hold.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "products.view",
+                            "prices.view",
+                            "currencies.view"
+                        ],
+                        "minItems": 1,
+                        "uniqueItems": true
+                    }
+                },
+                "type": "object"
+            },
+            "StoreUserRequest": {
+                "required": [
+                    "name",
+                    "email",
+                    "password",
+                    "password_confirmation",
+                    "role"
+                ],
+                "properties": {
+                    "name": {
+                        "description": "Data to create a user with a role.",
+                        "type": "string",
+                        "example": "John Smith",
+                        "maxLength": 100
+                    },
+                    "email": {
+                        "description": "Must be unique.",
+                        "type": "string",
+                        "format": "email",
+                        "example": "john@example.com",
+                        "maxLength": 150
+                    },
+                    "password": {
+                        "description": "At least 8 characters.",
+                        "type": "string",
+                        "format": "password",
+                        "example": "secret-pass-123",
+                        "minLength": 8
+                    },
+                    "password_confirmation": {
+                        "description": "Must match `password`.",
+                        "type": "string",
+                        "format": "password",
+                        "example": "secret-pass-123"
+                    },
+                    "role": {
+                        "description": "Name of an existing role. You can only assign a role whose permissions you all hold.",
+                        "type": "string",
+                        "example": "seller"
+                    }
+                },
+                "type": "object"
+            },
+            "UpdateCurrencyRequest": {
+                "properties": {
+                    "name": {
+                        "description": "Must be unique.",
+                        "type": "string",
+                        "example": "Euro",
+                        "maxLength": 50
+                    },
+                    "code": {
+                        "description": "3-letter uppercase ISO 4217 code. Must be unique. The base currency (USD) code cannot be changed.",
+                        "type": "string",
+                        "pattern": "^[A-Z]{3}$",
+                        "example": "EUR"
+                    },
+                    "symbol": {
+                        "type": "string",
+                        "example": "€",
+                        "maxLength": 5
+                    },
+                    "exchange_rate": {
+                        "description": "Units of this currency per 1 USD. Must be greater than 0, max 999999.999999, up to 6 decimals. The base currency (USD) rate must stay 1.",
+                        "type": "number",
+                        "example": 0.92,
+                        "maximum": 999999.999999,
+                        "minimum": 1.0e-6
+                    }
+                },
+                "type": "object"
+            },
+            "UpdateProductRequest": {
+                "properties": {
+                    "name": {
+                        "description": "Letters (any language), spaces and hyphens only; digits are rejected.",
+                        "type": "string",
+                        "pattern": "^[\\p{L}\\s\\-]+$",
+                        "example": "Wireless Mouse Pro",
+                        "maxLength": 150
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Ergonomic wireless mouse with USB-C receiver.",
+                        "maxLength": 1000
+                    },
+                    "price": {
+                        "description": "Base price in the product currency. Must be greater than 0, max 9999999999.99, up to 2 decimals.",
+                        "type": "number",
+                        "example": 24.9,
+                        "maximum": 9999999999.99,
+                        "minimum": 0.01
+                    },
+                    "currency_id": {
+                        "description": "ID of an existing currency. Must not be a currency in which the product already has a price.",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "tax_cost": {
+                        "description": "Tax cost in the product currency. 0 or greater, max 9999999999.99, up to 2 decimals.",
+                        "type": "number",
+                        "example": 4.73,
+                        "maximum": 9999999999.99,
+                        "minimum": 0
+                    },
+                    "manufacturing_cost": {
+                        "description": "Manufacturing cost in the product currency. 0 or greater, max 9999999999.99, up to 2 decimals.",
+                        "type": "number",
+                        "example": 8.1,
+                        "maximum": 9999999999.99,
+                        "minimum": 0
+                    }
+                },
+                "type": "object"
+            },
+            "UpdateRoleRequest": {
+                "properties": {
+                    "name": {
+                        "description": "Lowercase; starts with a letter and may contain letters, numbers, dashes and underscores. Must be unique.",
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]*$",
+                        "example": "senior-auditor",
+                        "maxLength": 50
+                    },
+                    "permissions": {
+                        "description": "Replaces all the permissions of the role. At least one distinct, existing permission name; you can only grant permissions you hold.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "products.view",
+                            "products.update",
+                            "prices.view"
+                        ],
+                        "minItems": 1,
+                        "uniqueItems": true
+                    }
+                },
+                "type": "object"
+            },
+            "UpdateUserRequest": {
+                "properties": {
+                    "name": {
+                        "description": "Partial update of a user: only the fields sent are validated and changed.",
+                        "type": "string",
+                        "example": "John A. Smith",
+                        "maxLength": 100
+                    },
+                    "email": {
+                        "description": "Must be unique.",
+                        "type": "string",
+                        "format": "email",
+                        "example": "john.smith@example.com",
+                        "maxLength": 150
+                    },
+                    "password": {
+                        "description": "At least 8 characters; requires `password_confirmation`. Changing it revokes the user's other sessions.",
+                        "type": "string",
+                        "format": "password",
+                        "example": "new-secret-456",
+                        "minLength": 8
+                    },
+                    "password_confirmation": {
+                        "description": "Must match `password`.",
+                        "type": "string",
+                        "format": "password",
+                        "example": "new-secret-456"
+                    },
+                    "role": {
+                        "description": "Name of an existing role; replaces the current role. You can only assign a role whose permissions you all hold.",
+                        "type": "string",
+                        "example": "admin"
+                    }
+                },
+                "type": "object"
+            },
+            "User": {
+                "required": [
+                    "id",
+                    "name",
+                    "email",
+                    "roles",
+                    "permissions",
+                    "created_at",
+                    "updated_at"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "A user with its roles and effective permissions.",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Jane Doe"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "jane@example.com"
+                    },
+                    "roles": {
+                        "description": "Names of the roles assigned to the user.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "seller"
+                        ]
+                    },
+                    "permissions": {
+                        "description": "Effective permissions granted through the roles, sorted by name.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "currencies.view",
+                            "prices.create",
+                            "prices.view",
+                            "products.create",
+                            "products.update",
+                            "products.view"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-01-15T10:30:00+00:00"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-01-15T10:30:00+00:00"
+                    }
+                },
+                "type": "object"
+            },
+            "ValidationError": {
+                "required": [
+                    "message",
+                    "errors"
+                ],
+                "properties": {
+                    "message": {
+                        "description": "Body of a 422 response: a summary message plus the errors of each field.",
+                        "type": "string",
+                        "example": "The name field is required."
+                    },
+                    "errors": {
+                        "type": "object",
+                        "example": {
+                            "name": [
+                                "The name field is required."
+                            ]
+                        },
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "responses": {
+            "Unauthenticated": {
+                "description": "Missing, invalid or expired token.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "example": {
+                            "message": "Unauthenticated."
+                        }
+                    }
+                }
+            },
+            "Forbidden": {
+                "description": "The user lacks the required permission.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "example": {
+                            "message": "This action is unauthorized."
+                        }
+                    }
+                }
+            },
+            "NotFound": {
+                "description": "The resource does not exist.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "example": {
+                            "message": "Resource not found."
+                        }
+                    }
+                }
+            },
+            "ValidationFailed": {
+                "description": "The request data is invalid.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        }
+                    }
+                }
+            },
+            "Conflict": {
+                "description": "The action conflicts with the current state of the resource.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            },
+            "TooManyRequests": {
+                "description": "Rate limit exceeded.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "example": {
+                            "message": "Too Many Attempts."
+                        }
+                    }
+                }
+            },
+            "ServerError": {
+                "description": "Unexpected error; details are logged, never returned.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        },
+                        "example": {
+                            "message": "An unexpected error occurred."
+                        }
+                    }
+                }
+            }
+        },
+        "parameters": {
+            "PerPage": {
+                "name": "per_page",
+                "in": "query",
+                "description": "Items per page (1-100, default 15).",
+                "required": false,
+                "schema": {
+                    "type": "integer",
+                    "default": 15,
+                    "maximum": 100,
+                    "minimum": 1
+                }
+            },
+            "Page": {
+                "name": "page",
+                "in": "query",
+                "description": "Page number.",
+                "required": false,
+                "schema": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 1
+                }
+            }
+        },
+        "securitySchemes": {
+            "sanctum": {
+                "type": "http",
+                "description": "Sanctum token obtained from POST /auth/login. Expires after 60 minutes.",
+                "bearerFormat": "Sanctum token",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Auth",
+            "description": "Login, logout and current user"
+        },
+        {
+            "name": "Products",
+            "description": "Product management"
+        },
+        {
+            "name": "Product prices",
+            "description": "Prices of a product in other currencies"
+        },
+        {
+            "name": "Currencies",
+            "description": "Currency management (USD is the base currency)"
+        },
+        {
+            "name": "Users",
+            "description": "User management (admin)"
+        },
+        {
+            "name": "Roles",
+            "description": "Roles and permissions management (admin)"
+        }
+    ]
+}

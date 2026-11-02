@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use OpenApi\Attributes as OA;
 
 class AuthController extends Controller
 {
@@ -23,6 +24,23 @@ class AuthController extends Controller
     /**
      * Exchange valid credentials for an expiring Sanctum token.
      */
+    #[OA\Post(
+        path: '/auth/login',
+        operationId: 'auth.login',
+        description: 'Public endpoint. Returns a Bearer token valid for 60 minutes. Unknown email and wrong password get the same 422 error on `email` ("These credentials do not match our records."), so existing accounts are never revealed. Limited to 5 attempts per minute for each email + IP pair.',
+        summary: 'Log in',
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/LoginRequest')),
+        tags: ['Auth'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Token issued.',
+                content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/AuthToken')]),
+            ),
+            new OA\Response(response: 422, ref: '#/components/responses/ValidationFailed'),
+            new OA\Response(response: 429, ref: '#/components/responses/TooManyRequests'),
+        ],
+    )]
     public function login(LoginRequest $request): AuthTokenResource
     {
         $user = User::where('email', $request->validated('email'))->first();
@@ -41,6 +59,22 @@ class AuthController extends Controller
     /**
      * Revoke the token used for the current request.
      */
+    #[OA\Post(
+        path: '/auth/logout',
+        operationId: 'auth.logout',
+        description: 'Revokes only the token used for this request; other sessions of the user stay active. No permission required.',
+        summary: 'Log out',
+        security: [['sanctum' => []]],
+        tags: ['Auth'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Token revoked.',
+                content: new OA\JsonContent(properties: [new OA\Property(property: 'message', type: 'string', example: 'Logged out.')]),
+            ),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthenticated'),
+        ],
+    )]
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
@@ -51,6 +85,22 @@ class AuthController extends Controller
     /**
      * Return the authenticated user with roles and effective permissions.
      */
+    #[OA\Get(
+        path: '/auth/me',
+        operationId: 'auth.me',
+        description: 'Returns the authenticated user with roles and effective permissions. No permission required.',
+        summary: 'Current user',
+        security: [['sanctum' => []]],
+        tags: ['Auth'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'The authenticated user.',
+                content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/User')]),
+            ),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthenticated'),
+        ],
+    )]
     public function me(Request $request): UserResource
     {
         return new UserResource($request->user()->load('roles.permissions'));
