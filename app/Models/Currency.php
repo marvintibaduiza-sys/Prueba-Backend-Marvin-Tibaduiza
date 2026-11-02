@@ -14,7 +14,6 @@ class Currency extends Model
 
     protected $fillable = [
         'name',
-        'code',
         'symbol',
         'exchange_rate',
     ];
@@ -31,12 +30,12 @@ class Currency extends Model
      */
     public static function base(): ?self
     {
-        return static::where('code', config('currency.base'))->first();
+        return static::where('name', config('currency.base'))->first();
     }
 
     public function isBase(): bool
     {
-        return $this->code === config('currency.base');
+        return $this->name === config('currency.base');
     }
 
     /**

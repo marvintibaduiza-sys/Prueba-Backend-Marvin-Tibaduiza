@@ -27,12 +27,12 @@ class ProductTest extends TestCase
 
     private function usd(): Currency
     {
-        return Currency::where('code', 'USD')->firstOrFail();
+        return Currency::where('name', 'USD')->firstOrFail();
     }
 
     private function eur(): Currency
     {
-        return Currency::where('code', 'EUR')->firstOrFail();
+        return Currency::where('name', 'EUR')->firstOrFail();
     }
 
     /**
@@ -59,7 +59,7 @@ class ProductTest extends TestCase
         $this->getJson(self::URI)
             ->assertOk()
             ->assertJsonCount(3, 'data')
-            ->assertJsonPath('data.0.currency.code', 'USD')
+            ->assertJsonPath('data.0.currency.name', 'USD')
             ->assertJsonStructure(['data', 'links', 'meta' => ['current_page', 'per_page', 'total']]);
     }
 
@@ -96,9 +96,9 @@ class ProductTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $product->id)
             ->assertJsonPath('data.price', '19.99')
-            ->assertJsonPath('data.currency.code', 'USD')
+            ->assertJsonPath('data.currency.name', 'USD')
             ->assertJsonPath('data.prices.0.price', '17.80')
-            ->assertJsonPath('data.prices.0.currency.code', 'EUR');
+            ->assertJsonPath('data.prices.0.currency.name', 'EUR');
     }
 
     public function test_seller_can_show_a_product(): void
@@ -134,7 +134,7 @@ class ProductTest extends TestCase
             ->assertJsonPath('data.price', '25.50')
             ->assertJsonPath('data.tax_cost', '4.85')
             ->assertJsonPath('data.manufacturing_cost', '10.00')
-            ->assertJsonPath('data.currency.code', 'USD');
+            ->assertJsonPath('data.currency.name', 'USD');
 
         $this->assertDatabaseHas('products', [
             'id' => $response->json('data.id'),
@@ -149,7 +149,7 @@ class ProductTest extends TestCase
 
         $this->postJson(self::URI, $this->payload(['currency_id' => $this->eur()->id]))
             ->assertCreated()
-            ->assertJsonPath('data.currency.code', 'EUR');
+            ->assertJsonPath('data.currency.name', 'EUR');
     }
 
     public function test_seller_can_create_a_product(): void
@@ -234,7 +234,7 @@ class ProductTest extends TestCase
 
         $this->postJson(self::URI, [...$this->payload(), 'currency_id' => null])
             ->assertCreated()
-            ->assertJsonPath('data.currency.code', 'USD');
+            ->assertJsonPath('data.currency.name', 'USD');
     }
 
     public function test_missing_base_currency_gives_a_validation_error_not_a_404(): void

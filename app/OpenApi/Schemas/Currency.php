@@ -9,11 +9,10 @@ use OpenApi\Attributes as OA;
  */
 #[OA\Schema(
     schema: 'Currency',
-    required: ['id', 'name', 'code', 'symbol', 'exchange_rate', 'created_at', 'updated_at'],
+    required: ['id', 'name', 'symbol', 'exchange_rate', 'created_at', 'updated_at'],
     properties: [
         new OA\Property(property: 'id', type: 'integer', example: 2),
-        new OA\Property(property: 'name', type: 'string', example: 'Euro'),
-        new OA\Property(property: 'code', description: 'ISO 4217 code.', type: 'string', example: 'EUR'),
+        new OA\Property(property: 'name', description: 'Unique identifier of the currency.', type: 'string', example: 'EUR'),
         new OA\Property(property: 'symbol', type: 'string', example: '€'),
         new OA\Property(
             property: 'exchange_rate',

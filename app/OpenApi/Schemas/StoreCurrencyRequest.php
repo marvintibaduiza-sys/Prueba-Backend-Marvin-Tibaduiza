@@ -9,16 +9,9 @@ use OpenApi\Attributes as OA;
  */
 #[OA\Schema(
     schema: 'StoreCurrencyRequest',
-    required: ['name', 'code', 'symbol', 'exchange_rate'],
+    required: ['name', 'symbol', 'exchange_rate'],
     properties: [
-        new OA\Property(property: 'name', description: 'Must be unique.', type: 'string', maxLength: 50, example: 'British Pound'),
-        new OA\Property(
-            property: 'code',
-            description: '3-letter uppercase ISO 4217 code. Must be unique.',
-            type: 'string',
-            pattern: '^[A-Z]{3}$',
-            example: 'GBP',
-        ),
+        new OA\Property(property: 'name', description: 'Unique identifier of the currency.', type: 'string', maxLength: 50, example: 'GBP'),
         new OA\Property(property: 'symbol', type: 'string', maxLength: 5, example: '£'),
         new OA\Property(
             property: 'exchange_rate',

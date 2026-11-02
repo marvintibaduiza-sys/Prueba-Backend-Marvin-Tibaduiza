@@ -24,12 +24,12 @@ class UpdateCurrencyRequest extends FormRequest
         $currency = $this->currency();
 
         return [
-            'name' => ['sometimes', 'required', 'string', 'max:50', Rule::unique('currencies', 'name')->ignore($currency)],
-            'code' => [
-                'sometimes', 'required', 'string', 'regex:/^[A-Z]{3}$/', Rule::unique('currencies', 'code')->ignore($currency),
+            'name' => [
+                'sometimes', 'required', 'string', 'max:50', Rule::unique('currencies', 'name')->ignore($currency),
+                // The base currency is identified by its name, so renaming it would lose the reference.
                 function (string $attribute, mixed $value, Closure $fail) use ($currency) {
-                    if ($currency->isBase() && $value !== $currency->code) {
-                        $fail('The base currency code cannot be changed.');
+                    if ($currency->isBase() && $value !== $currency->name) {
+                        $fail('The base currency name cannot be changed.');
                     }
                 },
             ],
@@ -42,16 +42,6 @@ class UpdateCurrencyRequest extends FormRequest
                     }
                 },
             ],
-        ];
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    public function messages(): array
-    {
-        return [
-            'code.regex' => 'The code must be a 3-letter uppercase ISO 4217 code (e.g. USD).',
         ];
     }
 

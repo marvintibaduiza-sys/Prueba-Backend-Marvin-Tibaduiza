@@ -128,6 +128,7 @@ Lists are paginated: `?page=1&per_page=15` (`per_page` from 1 to 100).
 
 - Product `name`: letters (any language), spaces and hyphens only; digits are rejected.
 - Amounts: greater than 0 (costs may be 0), up to 2 decimals, returned as strings (`"19.90"`).
+- A currency's `name` is its unique identifier (e.g. `USD`, `EUR`); the base currency (USD) cannot be renamed and its rate is always 1.
 - A product's `currency_id` defaults to USD.
 - One price per currency per product, never in the product's own base currency.
 - Deleting a product deletes its prices. A currency in use, or the base currency, cannot be deleted.

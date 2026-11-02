@@ -25,9 +25,9 @@ class ProductPriceTest extends TestCase
         $this->product = Product::factory()->for($this->currency('USD'))->create();
     }
 
-    private function currency(string $code): Currency
+    private function currency(string $name): Currency
     {
-        return Currency::where('code', $code)->firstOrFail();
+        return Currency::where('name', $name)->firstOrFail();
     }
 
     private function uri(?Product $product = null): string
@@ -59,7 +59,7 @@ class ProductPriceTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.product_id', $this->product->id)
             ->assertJsonPath('data.0.price', '9.50')
-            ->assertJsonPath('data.0.currency.code', 'EUR')
+            ->assertJsonPath('data.0.currency.name', 'EUR')
             ->assertJsonStructure(['data', 'links', 'meta']);
     }
 
@@ -92,7 +92,7 @@ class ProductPriceTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.product_id', $this->product->id)
             ->assertJsonPath('data.price', '22.70')
-            ->assertJsonPath('data.currency.code', 'EUR');
+            ->assertJsonPath('data.currency.name', 'EUR');
 
         $this->assertDatabaseHas('product_prices', [
             'product_id' => $this->product->id,

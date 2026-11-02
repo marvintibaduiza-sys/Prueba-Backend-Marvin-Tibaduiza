@@ -16,20 +16,20 @@ class CurrencySeederTest extends TestCase
         $this->seed(CurrencySeeder::class);
 
         $this->assertDatabaseCount('currencies', 2);
-        $this->assertDatabaseHas('currencies', ['code' => 'USD', 'name' => 'US Dollar', 'symbol' => '$']);
-        $this->assertDatabaseHas('currencies', ['code' => 'EUR', 'name' => 'Euro', 'symbol' => '€']);
-        $this->assertSame('1.000000', Currency::where('code', 'USD')->first()->exchange_rate);
-        $this->assertSame('0.890000', Currency::where('code', 'EUR')->first()->exchange_rate);
+        $this->assertDatabaseHas('currencies', ['name' => 'USD', 'symbol' => '$']);
+        $this->assertDatabaseHas('currencies', ['name' => 'EUR', 'symbol' => '€']);
+        $this->assertSame('1.000000', Currency::where('name', 'USD')->first()->exchange_rate);
+        $this->assertSame('0.890000', Currency::where('name', 'EUR')->first()->exchange_rate);
     }
 
     public function test_seeder_is_idempotent_and_keeps_rates_changed_later(): void
     {
         $this->seed(CurrencySeeder::class);
-        Currency::where('code', 'EUR')->update(['exchange_rate' => 0.95]);
+        Currency::where('name', 'EUR')->update(['exchange_rate' => 0.95]);
 
         $this->seed(CurrencySeeder::class);
 
         $this->assertDatabaseCount('currencies', 2);
-        $this->assertSame('0.950000', Currency::where('code', 'EUR')->first()->exchange_rate);
+        $this->assertSame('0.950000', Currency::where('name', 'EUR')->first()->exchange_rate);
     }
 }

@@ -23,7 +23,7 @@ class CurrencyController extends Controller
     #[OA\Get(
         path: '/currencies',
         operationId: 'currencies.index',
-        description: 'Requires `currencies.view`. Paginated list ordered by code.',
+        description: 'Requires `currencies.view`. Paginated list ordered by name.',
         summary: 'List currencies',
         security: [['sanctum' => []]],
         tags: ['Currencies'],
@@ -50,14 +50,14 @@ class CurrencyController extends Controller
         Gate::authorize('viewAny', Currency::class);
 
         return CurrencyResource::collection(
-            Currency::orderBy('code')->paginate($this->perPage($request))
+            Currency::orderBy('name')->paginate($this->perPage($request))
         );
     }
 
     #[OA\Post(
         path: '/currencies',
         operationId: 'currencies.store',
-        description: 'Requires `currencies.create`. `exchange_rate` is the number of units of the new currency per 1 USD. Name and code must be unique.',
+        description: 'Requires `currencies.create`. `exchange_rate` is the number of units of the new currency per 1 USD. The name is the unique identifier of the currency (e.g. GBP).',
         summary: 'Create a currency',
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/StoreCurrencyRequest')),
@@ -87,7 +87,7 @@ class CurrencyController extends Controller
             // A concurrent request stored the same unique value after validation passed.
             DB::rollBack();
 
-            throw new ConflictException('A currency with this name or code already exists.');
+            throw new ConflictException('A currency with this name already exists.');
         } catch (Throwable $e) {
             DB::rollBack();
 
@@ -126,7 +126,7 @@ class CurrencyController extends Controller
     #[OA\Put(
         path: '/currencies/{currency}',
         operationId: 'currencies.update',
-        description: 'Requires `currencies.update`. Partial update: only the fields sent are validated and changed (PATCH is also accepted). For the base currency (USD) the code cannot be changed and the exchange rate must stay 1 (422).',
+        description: 'Requires `currencies.update`. Partial update: only the fields sent are validated and changed (PATCH is also accepted). For the base currency (USD) the name cannot be changed and the exchange rate must stay 1 (422).',
         summary: 'Update a currency',
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/UpdateCurrencyRequest')),
@@ -158,7 +158,7 @@ class CurrencyController extends Controller
             // A concurrent request stored the same unique value after validation passed.
             DB::rollBack();
 
-            throw new ConflictException('A currency with this name or code already exists.');
+            throw new ConflictException('A currency with this name already exists.');
         } catch (Throwable $e) {
             DB::rollBack();
 

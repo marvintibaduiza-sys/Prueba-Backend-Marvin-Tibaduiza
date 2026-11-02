@@ -10,14 +10,7 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'UpdateCurrencyRequest',
     properties: [
-        new OA\Property(property: 'name', description: 'Must be unique.', type: 'string', maxLength: 50, example: 'Euro'),
-        new OA\Property(
-            property: 'code',
-            description: '3-letter uppercase ISO 4217 code. Must be unique. The base currency (USD) code cannot be changed.',
-            type: 'string',
-            pattern: '^[A-Z]{3}$',
-            example: 'EUR',
-        ),
+        new OA\Property(property: 'name', description: 'Unique identifier of the currency. The base currency (USD) name cannot be changed.', type: 'string', maxLength: 50, example: 'EUR'),
         new OA\Property(property: 'symbol', type: 'string', maxLength: 5, example: '€'),
         new OA\Property(
             property: 'exchange_rate',

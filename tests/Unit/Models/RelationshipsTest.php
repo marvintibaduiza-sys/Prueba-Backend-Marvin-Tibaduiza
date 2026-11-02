@@ -124,11 +124,11 @@ class RelationshipsTest extends TestCase
 
     public function test_base_returns_the_configured_base_currency(): void
     {
-        $usd = Currency::factory()->create(['code' => 'USD']);
-        Currency::factory()->create(['code' => 'EUR']);
+        $usd = Currency::factory()->create(['name' => 'USD']);
+        Currency::factory()->create(['name' => 'EUR']);
 
         $this->assertTrue(Currency::base()->is($usd));
         $this->assertTrue($usd->isBase());
-        $this->assertFalse(Currency::where('code', 'EUR')->first()->isBase());
+        $this->assertFalse(Currency::where('name', 'EUR')->first()->isBase());
     }
 }

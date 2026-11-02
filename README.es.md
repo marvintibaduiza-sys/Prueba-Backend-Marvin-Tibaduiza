@@ -128,6 +128,7 @@ Los listados están paginados: `?page=1&per_page=15` (`per_page` entre 1 y 100).
 
 - `name` del producto: solo letras (de cualquier idioma), espacios y guiones; se rechazan los dígitos.
 - Montos: mayores a 0 (los costos pueden ser 0), hasta 2 decimales, devueltos como strings (`"19.90"`).
+- El `name` de una divisa es su identificador único (p. ej. `USD`, `EUR`); la divisa base (USD) no se puede renombrar y su tasa siempre es 1.
 - El `currency_id` de un producto es USD por defecto.
 - Un precio por divisa por producto, nunca en la divisa base del propio producto.
 - Eliminar un producto elimina sus precios. No se puede eliminar una divisa en uso ni la divisa base.

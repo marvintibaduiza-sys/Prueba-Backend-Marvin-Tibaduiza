@@ -27,12 +27,12 @@ class CurrencyTest extends TestCase
 
     private function usd(): Currency
     {
-        return Currency::where('code', 'USD')->firstOrFail();
+        return Currency::where('name', 'USD')->firstOrFail();
     }
 
     private function eur(): Currency
     {
-        return Currency::where('code', 'EUR')->firstOrFail();
+        return Currency::where('name', 'EUR')->firstOrFail();
     }
 
     /**
@@ -41,7 +41,7 @@ class CurrencyTest extends TestCase
     private function payload(array $overrides = []): array
     {
         return array_filter(
-            array_merge(['name' => 'Pound Sterling', 'code' => 'GBP', 'symbol' => '£', 'exchange_rate' => 0.79], $overrides),
+            array_merge(['name' => 'GBP', 'symbol' => '£', 'exchange_rate' => 0.79], $overrides),
             fn ($value) => $value !== null
         );
     }
@@ -54,7 +54,7 @@ class CurrencyTest extends TestCase
 
         $this->getJson(self::URI)
             ->assertOk()
-            ->assertJsonStructure(['data' => [['id', 'name', 'code', 'symbol', 'exchange_rate']], 'links', 'meta'])
+            ->assertJsonStructure(['data' => [['id', 'name', 'symbol', 'exchange_rate']], 'links', 'meta'])
             ->assertJsonPath('meta.total', 2);
     }
 
@@ -81,8 +81,7 @@ class CurrencyTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data', [
                 'id' => $eur->id,
-                'name' => 'Euro',
-                'code' => 'EUR',
+                'name' => 'EUR',
                 'symbol' => '€',
                 'exchange_rate' => '0.890000',
                 'created_at' => $eur->created_at->toIso8601String(),
@@ -117,10 +116,10 @@ class CurrencyTest extends TestCase
 
         $this->postJson(self::URI, $this->payload())
             ->assertCreated()
-            ->assertJsonPath('data.code', 'GBP')
+            ->assertJsonPath('data.name', 'GBP')
             ->assertJsonPath('data.exchange_rate', '0.790000');
 
-        $this->assertDatabaseHas('currencies', ['code' => 'GBP', 'name' => 'Pound Sterling']);
+        $this->assertDatabaseHas('currencies', ['name' => 'GBP', 'symbol' => '£']);
     }
 
     public function test_seller_cannot_create_a_currency(): void
@@ -128,7 +127,7 @@ class CurrencyTest extends TestCase
         $this->actingAsSeller();
 
         $this->postJson(self::URI, $this->payload())->assertForbidden();
-        $this->assertDatabaseMissing('currencies', ['code' => 'GBP']);
+        $this->assertDatabaseMissing('currencies', ['name' => 'GBP']);
     }
 
     public function test_guest_cannot_create_a_currency(): void
@@ -141,11 +140,7 @@ class CurrencyTest extends TestCase
         return [
             'name missing' => [['name' => null], 'name'],
             'name too long' => [['name' => str_repeat('a', 51)], 'name'],
-            'name duplicated' => [['name' => 'Euro'], 'name'],
-            'code missing' => [['code' => null], 'code'],
-            'code lowercase' => [['code' => 'gbp'], 'code'],
-            'code with four letters' => [['code' => 'GBPX'], 'code'],
-            'code duplicated' => [['code' => 'EUR'], 'code'],
+            'name duplicated' => [['name' => 'EUR'], 'name'],
             'symbol missing' => [['symbol' => null], 'symbol'],
             'symbol too long' => [['symbol' => 'ABCDEF'], 'symbol'],
             'rate missing' => [['exchange_rate' => null], 'exchange_rate'],
@@ -177,21 +172,21 @@ class CurrencyTest extends TestCase
         $response = $this->postJson(self::URI, $this->payload());
 
         $response->assertStatus(500)->assertExactJson(['message' => 'An unexpected error occurred.']);
-        $this->assertDatabaseMissing('currencies', ['code' => 'GBP']);
+        $this->assertDatabaseMissing('currencies', ['name' => 'GBP']);
     }
 
     public function test_concurrent_duplicate_currency_returns_409_and_rolls_back(): void
     {
         $this->actingAsAdmin();
 
-        // Simulates another request inserting the same code after validation passed.
+        // Simulates another request inserting the same name after validation passed.
         Currency::creating(fn (Currency $currency) => DB::table('currencies')->insert([
-            'name' => 'Concurrent '.$currency->code, 'code' => $currency->code, 'symbol' => '£', 'exchange_rate' => 1,
+            'name' => $currency->name, 'symbol' => '£', 'exchange_rate' => 1,
         ]));
 
         $this->postJson(self::URI, $this->payload())
             ->assertStatus(409)
-            ->assertExactJson(['message' => 'A currency with this name or code already exists.']);
+            ->assertExactJson(['message' => 'A currency with this name already exists.']);
 
         $this->assertDatabaseCount('currencies', 2);
     }
@@ -202,12 +197,12 @@ class CurrencyTest extends TestCase
         $currency = Currency::factory()->create();
 
         Currency::updating(fn (Currency $updated) => DB::table('currencies')->insert([
-            'name' => 'Concurrent', 'code' => $updated->code, 'symbol' => '¤', 'exchange_rate' => 1,
+            'name' => $updated->name, 'symbol' => '¤', 'exchange_rate' => 1,
         ]));
 
-        $this->putJson(self::URI."/{$currency->id}", ['code' => 'XZZ'])->assertStatus(409);
+        $this->putJson(self::URI."/{$currency->id}", ['name' => 'XZZ'])->assertStatus(409);
 
-        $this->assertDatabaseMissing('currencies', ['code' => 'XZZ']);
+        $this->assertDatabaseMissing('currencies', ['name' => 'XZZ']);
     }
 
     // --------------------------------------------------------------- update
@@ -220,7 +215,7 @@ class CurrencyTest extends TestCase
         $this->putJson(self::URI."/{$eur->id}", ['exchange_rate' => 0.92])
             ->assertOk()
             ->assertJsonPath('data.exchange_rate', '0.920000')
-            ->assertJsonPath('data.name', 'Euro');
+            ->assertJsonPath('data.name', 'EUR');
 
         $this->assertSame('0.920000', $eur->fresh()->exchange_rate);
     }
@@ -230,14 +225,14 @@ class CurrencyTest extends TestCase
         $this->actingAsAdmin();
         $eur = $this->eur();
 
-        $this->putJson(self::URI."/{$eur->id}", ['name' => 'Euro', 'code' => 'EUR'])->assertOk();
+        $this->putJson(self::URI."/{$eur->id}", ['name' => 'EUR'])->assertOk();
     }
 
     public function test_update_cannot_take_another_currency_name(): void
     {
         $this->actingAsAdmin();
 
-        $this->putJson(self::URI."/{$this->eur()->id}", ['name' => 'US Dollar'])
+        $this->putJson(self::URI."/{$this->eur()->id}", ['name' => 'USD'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('name');
     }
@@ -284,13 +279,13 @@ class CurrencyTest extends TestCase
             ->assertJsonPath('data.symbol', 'US$');
     }
 
-    public function test_base_currency_code_cannot_change(): void
+    public function test_base_currency_name_cannot_change(): void
     {
         $this->actingAsAdmin();
 
-        $this->putJson(self::URI."/{$this->usd()->id}", ['code' => 'USN'])
+        $this->putJson(self::URI."/{$this->usd()->id}", ['name' => 'USN'])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['code' => 'The base currency code cannot be changed.']);
+            ->assertJsonValidationErrors(['name' => 'The base currency name cannot be changed.']);
     }
 
     // -------------------------------------------------------------- destroy

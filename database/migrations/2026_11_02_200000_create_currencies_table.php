@@ -10,8 +10,7 @@ return new class extends Migration
     {
         Schema::create('currencies', function (Blueprint $table) {
             $table->id();
-            $table->string('name', 50)->unique();
-            $table->char('code', 3)->unique()->comment('ISO 4217 code');
+            $table->string('name', 50)->unique()->comment('Unique identifier of the currency, e.g. USD');
             $table->string('symbol', 5);
             $table->decimal('exchange_rate', 12, 6)->comment('Units of this currency per 1 unit of the base currency');
             $table->timestamps();

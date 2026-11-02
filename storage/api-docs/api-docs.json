@@ -132,7 +132,7 @@
                     "Currencies"
                 ],
                 "summary": "List currencies",
-                "description": "Requires `currencies.view`. Paginated list ordered by code.",
+                "description": "Requires `currencies.view`. Paginated list ordered by name.",
                 "operationId": "currencies.index",
                 "parameters": [
                     {
@@ -185,7 +185,7 @@
                     "Currencies"
                 ],
                 "summary": "Create a currency",
-                "description": "Requires `currencies.create`. `exchange_rate` is the number of units of the new currency per 1 USD. Name and code must be unique.",
+                "description": "Requires `currencies.create`. `exchange_rate` is the number of units of the new currency per 1 USD. The name is the unique identifier of the currency (e.g. GBP).",
                 "operationId": "currencies.store",
                 "requestBody": {
                     "required": true,
@@ -292,7 +292,7 @@
                     "Currencies"
                 ],
                 "summary": "Update a currency",
-                "description": "Requires `currencies.update`. Partial update: only the fields sent are validated and changed (PATCH is also accepted). For the base currency (USD) the code cannot be changed and the exchange rate must stay 1 (422).",
+                "description": "Requires `currencies.update`. Partial update: only the fields sent are validated and changed (PATCH is also accepted). For the base currency (USD) the name cannot be changed and the exchange rate must stay 1 (422).",
                 "operationId": "currencies.update",
                 "parameters": [
                     {
@@ -1437,7 +1437,6 @@
                 "required": [
                     "id",
                     "name",
-                    "code",
                     "symbol",
                     "exchange_rate",
                     "created_at",
@@ -1450,11 +1449,7 @@
                         "example": 2
                     },
                     "name": {
-                        "type": "string",
-                        "example": "Euro"
-                    },
-                    "code": {
-                        "description": "ISO 4217 code.",
+                        "description": "Unique identifier of the currency.",
                         "type": "string",
                         "example": "EUR"
                     },
@@ -1751,22 +1746,15 @@
             "StoreCurrencyRequest": {
                 "required": [
                     "name",
-                    "code",
                     "symbol",
                     "exchange_rate"
                 ],
                 "properties": {
                     "name": {
-                        "description": "Must be unique.",
+                        "description": "Unique identifier of the currency.",
                         "type": "string",
-                        "example": "British Pound",
+                        "example": "GBP",
                         "maxLength": 50
-                    },
-                    "code": {
-                        "description": "3-letter uppercase ISO 4217 code. Must be unique.",
-                        "type": "string",
-                        "pattern": "^[A-Z]{3}$",
-                        "example": "GBP"
                     },
                     "symbol": {
                         "type": "string",
@@ -1930,16 +1918,10 @@
             "UpdateCurrencyRequest": {
                 "properties": {
                     "name": {
-                        "description": "Must be unique.",
+                        "description": "Unique identifier of the currency. The base currency (USD) name cannot be changed.",
                         "type": "string",
-                        "example": "Euro",
+                        "example": "EUR",
                         "maxLength": 50
-                    },
-                    "code": {
-                        "description": "3-letter uppercase ISO 4217 code. Must be unique. The base currency (USD) code cannot be changed.",
-                        "type": "string",
-                        "pattern": "^[A-Z]{3}$",
-                        "example": "EUR"
                     },
                     "symbol": {
                         "type": "string",

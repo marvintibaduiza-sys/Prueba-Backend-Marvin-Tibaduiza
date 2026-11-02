@@ -12,13 +12,10 @@ class CurrencyFactory extends Factory
 {
     public function definition(): array
     {
-        // ISO 4217 reserves codes starting with "X" for non-national units,
-        // so generated codes never collide with real ones such as USD or EUR.
-        $code = fake()->unique()->regexify('X[A-Z]{2}');
-
         return [
-            'name' => "Test Currency {$code}",
-            'code' => $code,
+            // ISO 4217 reserves identifiers starting with "X" for non-national units,
+            // so generated names never collide with real ones such as USD or EUR.
+            'name' => fake()->unique()->regexify('X[A-Z]{2}'),
             'symbol' => fake()->randomElement(['¤', '₳', '₴', '₲']),
             'exchange_rate' => fake()->randomFloat(6, 0.1, 5000),
         ];
