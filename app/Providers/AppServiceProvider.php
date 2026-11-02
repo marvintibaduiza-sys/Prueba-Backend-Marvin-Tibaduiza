@@ -2,12 +2,15 @@
 
 namespace App\Providers;
 
+use App\Policies\RolePolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,6 +30,9 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
 
         Password::defaults(fn () => Password::min(8));
+
+        // Role is a spatie model, outside App\Models, so its policy is not auto-discovered.
+        Gate::policy(Role::class, RolePolicy::class);
     }
 
     private function configureRateLimiting(): void
