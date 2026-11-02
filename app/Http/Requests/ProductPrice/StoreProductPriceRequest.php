@@ -5,6 +5,7 @@ namespace App\Http\Requests\ProductPrice;
 use App\Http\Requests\Product\ProductRules;
 use App\Models\Product;
 use App\Models\ProductPrice;
+use App\Rules\NotBoolean;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -28,6 +29,7 @@ class StoreProductPriceRequest extends FormRequest
             'currency_id' => [
                 'required',
                 'integer',
+                new NotBoolean,
                 'exists:currencies,id',
                 // The base currency price already lives in products.price.
                 Rule::notIn([$product->currency_id]),

@@ -13,10 +13,10 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(
             property: 'name',
-            description: 'Letters (any language), spaces and hyphens only; digits are rejected.',
+            description: 'Letters (any language, accents included), spaces and hyphens only, with at least one letter; digits, symbols, tabs and line breaks are rejected.',
             type: 'string',
             maxLength: 150,
-            pattern: '^[\p{L}\s\-]+$',
+            pattern: '^(?=.*\p{L})[\p{L}\p{M} \-]+$',
             example: 'Wireless Mouse',
         ),
         new OA\Property(property: 'description', type: 'string', maxLength: 1000, example: 'Ergonomic wireless mouse with USB receiver.'),

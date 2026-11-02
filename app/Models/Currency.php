@@ -27,11 +27,11 @@ class Currency extends Model
     }
 
     /**
-     * The configured base (reference) currency.
+     * The base (reference) currency, or null if it has not been seeded.
      */
-    public static function base(): self
+    public static function base(): ?self
     {
-        return static::where('code', config('currency.base'))->firstOrFail();
+        return static::where('code', config('currency.base'))->first();
     }
 
     public function isBase(): bool

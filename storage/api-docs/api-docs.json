@@ -1799,9 +1799,9 @@
                 ],
                 "properties": {
                     "name": {
-                        "description": "Letters (any language), spaces and hyphens only; digits are rejected.",
+                        "description": "Letters (any language, accents included), spaces and hyphens only, with at least one letter; digits, symbols, tabs and line breaks are rejected.",
                         "type": "string",
-                        "pattern": "^[\\p{L}\\s\\-]+$",
+                        "pattern": "^(?=.*\\p{L})[\\p{L}\\p{M} \\-]+$",
                         "example": "Wireless Mouse",
                         "maxLength": 150
                     },
@@ -1944,9 +1944,9 @@
             "UpdateProductRequest": {
                 "properties": {
                     "name": {
-                        "description": "Letters (any language), spaces and hyphens only; digits are rejected.",
+                        "description": "Letters (any language, accents included), spaces and hyphens only, with at least one letter; digits, symbols, tabs and line breaks are rejected.",
                         "type": "string",
-                        "pattern": "^[\\p{L}\\s\\-]+$",
+                        "pattern": "^(?=.*\\p{L})[\\p{L}\\p{M} \\-]+$",
                         "example": "Wireless Mouse Pro",
                         "maxLength": 150
                     },

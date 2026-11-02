@@ -47,7 +47,6 @@ La API queda disponible en `http://127.0.0.1:8000/api/v1` y la documentación en
 |---|---|---|
 | `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | Conexión a la base de datos | — |
 | `SANCTUM_EXPIRATION` | Duración del token en minutos | `60` |
-| `BASE_CURRENCY` | Código ISO de la divisa base | `USD` |
 | `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Cuenta de administrador que crea el seeder | nombre: `Administrator` |
 | `SELLER_NAME`, `SELLER_EMAIL`, `SELLER_PASSWORD` | Cuenta de vendedor que crea el seeder | nombre: `Seller` |
 

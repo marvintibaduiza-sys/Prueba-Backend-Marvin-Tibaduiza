@@ -14,12 +14,13 @@ class StoreProductRequest extends FormRequest
     }
 
     /**
-     * The base currency is used when the client does not send one.
+     * The base currency is used when the client sends no currency (or null). If the base
+     * currency does not exist, the field stays empty and fails "required" with a clear 422.
      */
     protected function prepareForValidation(): void
     {
-        if ($this->missing('currency_id')) {
-            $this->merge(['currency_id' => Currency::base()->id]);
+        if ($this->input('currency_id') === null) {
+            $this->merge(['currency_id' => Currency::base()?->id]);
         }
     }
 

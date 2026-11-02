@@ -126,6 +126,7 @@ class ProductPriceTest extends TestCase
             'currency missing' => [['currency_id' => null], 'currency_id'],
             'currency nonexistent' => [['currency_id' => 999], 'currency_id'],
             'currency not an integer' => [['currency_id' => 'abc'], 'currency_id'],
+            'currency boolean' => [['currency_id' => true], 'currency_id'],
             'price missing' => [['price' => null], 'price'],
             'price not numeric' => [['price' => 'abc'], 'price'],
             'price zero' => [['price' => 0], 'price'],

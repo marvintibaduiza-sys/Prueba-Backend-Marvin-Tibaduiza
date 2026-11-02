@@ -169,6 +169,9 @@ class ProductTest extends TestCase
         return [
             'name with digits' => [['name' => 'Laptop 15'], 'name'],
             'name with symbols' => [['name' => 'Mouse@Pro'], 'name'],
+            'name without letters' => [['name' => '- - -'], 'name'],
+            'name with a line break' => [['name' => "Wireless\nMouse"], 'name'],
+            'name with a tab' => [['name' => "Wireless\tMouse"], 'name'],
             'name missing' => [['name' => null], 'name'],
             'name blank' => [['name' => '   '], 'name'],
             'name too long' => [['name' => str_repeat('a', 151)], 'name'],
@@ -188,6 +191,7 @@ class ProductTest extends TestCase
             'manufacturing cost with three decimals' => [['manufacturing_cost' => 2.555], 'manufacturing_cost'],
             'currency nonexistent' => [['currency_id' => 999], 'currency_id'],
             'currency not an integer' => [['currency_id' => 'abc'], 'currency_id'],
+            'currency boolean' => [['currency_id' => true], 'currency_id'],
         ];
     }
 
@@ -209,6 +213,7 @@ class ProductTest extends TestCase
             'accents' => ['Café Molido'],
             'eñe' => ['Ñandú de Peluche'],
             'hyphen' => ['Teclado Inalámbrico-Pro'],
+            'decomposed accent' => ["Cafe\u{0301} Molido"],
         ];
     }
 
@@ -220,6 +225,25 @@ class ProductTest extends TestCase
         $this->postJson(self::URI, $this->payload(['name' => $name]))
             ->assertCreated()
             ->assertJsonPath('data.name', $name);
+    }
+
+    public function test_explicit_null_currency_defaults_to_usd(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->postJson(self::URI, [...$this->payload(), 'currency_id' => null])
+            ->assertCreated()
+            ->assertJsonPath('data.currency.code', 'USD');
+    }
+
+    public function test_missing_base_currency_gives_a_validation_error_not_a_404(): void
+    {
+        $this->actingAsAdmin();
+        Currency::query()->delete();
+
+        $this->postJson(self::URI, $this->payload())
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('currency_id');
     }
 
     public function test_zero_costs_are_accepted(): void
