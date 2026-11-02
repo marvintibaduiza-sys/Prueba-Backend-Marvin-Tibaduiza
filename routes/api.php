@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CurrencyController;
+use App\Http\Controllers\Api\V1\ProductController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -17,5 +18,6 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::apiResource('currencies', CurrencyController::class);
+        Route::apiResource('products', ProductController::class);
     });
 });
