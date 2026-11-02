@@ -8,7 +8,6 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Guard;
 use Spatie\Permission\Models\Role;
@@ -64,9 +63,10 @@ class User extends Authenticatable
     {
         $adminRole = Role::findByName(RoleName::Admin->value, Guard::getDefaultName(static::class));
 
-        $adminIds = DB::table(config('permission.table_names.model_has_roles'))
-            ->where('role_id', $adminRole->getKey())
-            ->where('model_type', $this->getMorphClass())
+        // Locks the pivot rows directly: a whereHas() subquery would neither lock them
+        // nor see the latest committed rows under REPEATABLE READ.
+        $adminIds = RoleAssignment::ofRole($adminRole)
+            ->forUsers()
             ->lockForUpdate()
             ->pluck(config('permission.column_names.model_morph_key'))
             ->map(fn ($id) => (int) $id);

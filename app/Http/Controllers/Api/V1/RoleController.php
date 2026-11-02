@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Role\StoreRoleRequest;
 use App\Http\Requests\Role\UpdateRoleRequest;
 use App\Http\Resources\RoleResource;
+use App\Models\RoleAssignment;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -54,17 +55,14 @@ class RoleController extends Controller
     {
         Gate::authorize('viewAny', Role::class);
 
-        // Explicit subquery instead of withCount('users'): spatie resolves that relation from the
-        // request guard ("sanctum"), which has no user provider, so it cannot build it here.
-        $usersCount = DB::table(config('permission.table_names.model_has_roles'))
-            ->selectRaw('count(*)')
-            ->whereColumn('role_id', 'roles.id')
-            ->where('model_type', (new User)->getMorphClass());
-
         return RoleResource::collection(
             Role::query()
-                ->select('roles.*')
-                ->selectSub($usersCount, 'users_count')
+                // Eloquent subquery instead of withCount('users'): spatie resolves that relation from
+                // the request guard ("sanctum"), which has no user provider, so it cannot build it here.
+                ->addSelect(['users_count' => RoleAssignment::forUsers()
+                    ->selectRaw('count(*)')
+                    ->whereColumn('role_id', 'roles.id'),
+                ])
                 ->with('permissions')
                 ->orderBy('id')
                 ->paginate($this->perPage($request))
@@ -237,10 +235,7 @@ class RoleController extends Controller
             DB::beginTransaction();
 
             // Locked read: a concurrent assignment of this role waits until we finish.
-            $isAssigned = DB::table(config('permission.table_names.model_has_roles'))
-                ->where('role_id', $role->getKey())
-                ->lockForUpdate()
-                ->exists();
+            $isAssigned = RoleAssignment::ofRole($role)->lockForUpdate()->exists();
 
             if ($isAssigned) {
                 throw new ConflictException('The role is assigned to users and cannot be deleted.');
