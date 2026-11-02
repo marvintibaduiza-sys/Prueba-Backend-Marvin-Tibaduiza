@@ -205,6 +205,46 @@ class UserTest extends TestCase
         $this->assertTrue(Hash::check('brand-new-pass-1', $seller->fresh()->password));
     }
 
+    public function test_changing_a_user_password_revokes_its_tokens(): void
+    {
+        $this->actingAsAdmin();
+        $seller = $this->userWithRole(RoleName::Seller);
+        $seller->createToken('stolen-session');
+
+        $this->putJson(self::URI."/{$seller->id}", [
+            'password' => 'brand-new-pass-1',
+            'password_confirmation' => 'brand-new-pass-1',
+        ])->assertOk();
+
+        $this->assertDatabaseMissing('personal_access_tokens', ['tokenable_id' => $seller->id]);
+    }
+
+    public function test_changing_own_password_revokes_other_sessions_but_keeps_the_current_one(): void
+    {
+        $admin = $this->userWithRole(RoleName::Admin);
+        $current = $admin->createToken('current');
+        $other = $admin->createToken('other-device');
+
+        $this->withToken($current->plainTextToken)->putJson(self::URI."/{$admin->id}", [
+            'password' => 'brand-new-pass-1',
+            'password_confirmation' => 'brand-new-pass-1',
+        ])->assertOk();
+
+        $this->assertModelExists($current->accessToken);
+        $this->assertModelMissing($other->accessToken);
+    }
+
+    public function test_updating_other_fields_keeps_tokens(): void
+    {
+        $this->actingAsAdmin();
+        $seller = $this->userWithRole(RoleName::Seller);
+        $seller->createToken('session');
+
+        $this->putJson(self::URI."/{$seller->id}", ['name' => 'Renamed'])->assertOk();
+
+        $this->assertDatabaseHas('personal_access_tokens', ['tokenable_id' => $seller->id]);
+    }
+
     public function test_update_keeping_own_email_is_valid(): void
     {
         $this->actingAsAdmin();

@@ -8,7 +8,10 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Guard;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -57,5 +60,17 @@ class User extends Authenticatable
     {
         return $this->hasRole(RoleName::Admin->value)
             && static::role(RoleName::Admin->value)->count() === 1;
+    }
+
+    /**
+     * Lock the admin role assignments until the current transaction ends, so two
+     * concurrent requests cannot both pass the "last admin" check (SELECT ... FOR UPDATE).
+     */
+    public static function lockAdministrators(): void
+    {
+        DB::table(config('permission.table_names.model_has_roles'))
+            ->where('role_id', Role::findByName(RoleName::Admin->value, Guard::getDefaultName(static::class))->getKey())
+            ->lockForUpdate()
+            ->get();
     }
 }

@@ -15,6 +15,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Laravel\Sanctum\PersonalAccessToken;
 use Throwable;
 
 class UserController extends Controller
@@ -58,19 +59,18 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user): UserResource|JsonResponse
     {
         $newRole = $request->validated('role');
+        $changesRole = $newRole !== null && ! $user->hasRole($newRole);
 
-        if ($newRole !== null && ! $user->hasRole($newRole)) {
-            if ($user->is($request->user())) {
-                throw new ConflictException('You cannot change your own role.');
-            }
-
-            if ($newRole !== RoleName::Admin->value && $user->isLastAdmin()) {
-                throw new ConflictException(self::LAST_ADMIN_MESSAGE);
-            }
+        if ($changesRole && $user->is($request->user())) {
+            throw new ConflictException('You cannot change your own role.');
         }
 
         try {
             DB::beginTransaction();
+
+            if ($changesRole && $newRole !== RoleName::Admin->value) {
+                $this->ensureIsNotLastAdmin($user);
+            }
 
             $user->update($request->safe()->except('role'));
 
@@ -78,7 +78,15 @@ class UserController extends Controller
                 $user->syncRoles([$newRole]);
             }
 
+            if ($request->validated('password') !== null) {
+                $this->revokeOtherSessions($request, $user);
+            }
+
             DB::commit();
+        } catch (ConflictException $e) {
+            DB::rollBack();
+
+            throw $e;
         } catch (Throwable $e) {
             DB::rollBack();
 
@@ -96,18 +104,20 @@ class UserController extends Controller
             throw new ConflictException('You cannot delete your own account.');
         }
 
-        if ($user->isLastAdmin()) {
-            throw new ConflictException(self::LAST_ADMIN_MESSAGE);
-        }
-
         try {
             DB::beginTransaction();
+
+            $this->ensureIsNotLastAdmin($user);
 
             // Revoke every active session before removing the account.
             $user->tokens()->delete();
             $user->delete();
 
             DB::commit();
+        } catch (ConflictException $e) {
+            DB::rollBack();
+
+            throw $e;
         } catch (Throwable $e) {
             DB::rollBack();
 
@@ -115,5 +125,33 @@ class UserController extends Controller
         }
 
         return response()->noContent();
+    }
+
+    /**
+     * Must run inside the transaction: the lock is held until commit or rollback.
+     */
+    private function ensureIsNotLastAdmin(User $user): void
+    {
+        User::lockAdministrators();
+
+        if ($user->isLastAdmin()) {
+            throw new ConflictException(self::LAST_ADMIN_MESSAGE);
+        }
+    }
+
+    /**
+     * After a password change, every session of that user is revoked, except the one
+     * making the request when users change their own password.
+     */
+    private function revokeOtherSessions(Request $request, User $user): void
+    {
+        $currentToken = $request->user()->currentAccessToken();
+
+        $user->tokens()
+            ->when(
+                $user->is($request->user()) && $currentToken instanceof PersonalAccessToken,
+                fn ($query) => $query->whereKeyNot($currentToken->getKey())
+            )
+            ->delete();
     }
 }
