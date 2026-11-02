@@ -222,6 +222,9 @@
                     "422": {
                         "$ref": "#/components/responses/ValidationFailed"
                     },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
                     }
@@ -339,6 +342,9 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationFailed"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
@@ -934,6 +940,9 @@
                     "422": {
                         "$ref": "#/components/responses/ValidationFailed"
                     },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
                     "500": {
                         "$ref": "#/components/responses/ServerError"
                     }
@@ -1205,6 +1214,9 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationFailed"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
                     },
                     "500": {
                         "$ref": "#/components/responses/ServerError"

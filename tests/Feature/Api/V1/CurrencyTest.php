@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductPrice;
 use Database\Seeders\CurrencySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\TestCase;
@@ -177,6 +178,36 @@ class CurrencyTest extends TestCase
 
         $response->assertStatus(500)->assertExactJson(['message' => 'An unexpected error occurred.']);
         $this->assertDatabaseMissing('currencies', ['code' => 'GBP']);
+    }
+
+    public function test_concurrent_duplicate_currency_returns_409_and_rolls_back(): void
+    {
+        $this->actingAsAdmin();
+
+        // Simulates another request inserting the same code after validation passed.
+        Currency::creating(fn (Currency $currency) => DB::table('currencies')->insert([
+            'name' => 'Concurrent '.$currency->code, 'code' => $currency->code, 'symbol' => '£', 'exchange_rate' => 1,
+        ]));
+
+        $this->postJson(self::URI, $this->payload())
+            ->assertStatus(409)
+            ->assertExactJson(['message' => 'A currency with this name or code already exists.']);
+
+        $this->assertDatabaseCount('currencies', 2);
+    }
+
+    public function test_concurrent_duplicate_on_update_returns_409(): void
+    {
+        $this->actingAsAdmin();
+        $currency = Currency::factory()->create();
+
+        Currency::updating(fn (Currency $updated) => DB::table('currencies')->insert([
+            'name' => 'Concurrent', 'code' => $updated->code, 'symbol' => '¤', 'exchange_rate' => 1,
+        ]));
+
+        $this->putJson(self::URI."/{$currency->id}", ['code' => 'XZZ'])->assertStatus(409);
+
+        $this->assertDatabaseMissing('currencies', ['code' => 'XZZ']);
     }
 
     // --------------------------------------------------------------- update

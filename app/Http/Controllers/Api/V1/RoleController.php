@@ -9,6 +9,7 @@ use App\Http\Requests\Role\StoreRoleRequest;
 use App\Http\Requests\Role\UpdateRoleRequest;
 use App\Http\Resources\RoleResource;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -87,6 +88,7 @@ class RoleController extends Controller
             new OA\Response(response: 401, ref: '#/components/responses/Unauthenticated'),
             new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
             new OA\Response(response: 422, ref: '#/components/responses/ValidationFailed'),
+            new OA\Response(response: 409, ref: '#/components/responses/Conflict'),
             new OA\Response(response: 500, ref: '#/components/responses/ServerError'),
         ],
     )]
@@ -105,6 +107,11 @@ class RoleController extends Controller
             $role->syncPermissions($request->validated('permissions'));
 
             DB::commit();
+        } catch (UniqueConstraintViolationException) {
+            // A concurrent request stored the same unique value after validation passed.
+            DB::rollBack();
+
+            throw new ConflictException('A role with this name already exists.');
         } catch (Throwable $e) {
             DB::rollBack();
 
@@ -189,6 +196,11 @@ class RoleController extends Controller
             }
 
             DB::commit();
+        } catch (UniqueConstraintViolationException) {
+            // A concurrent request stored the same unique value after validation passed.
+            DB::rollBack();
+
+            throw new ConflictException('A role with this name already exists.');
         } catch (Throwable $e) {
             DB::rollBack();
 

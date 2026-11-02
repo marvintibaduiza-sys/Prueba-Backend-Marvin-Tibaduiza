@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Permission;
@@ -161,6 +162,22 @@ class RoleTest extends TestCase
             ->assertJsonValidationErrors($field);
 
         $this->assertDatabaseCount('roles', 2);
+    }
+
+    public function test_concurrent_duplicate_role_returns_409_and_rolls_back(): void
+    {
+        $this->actingAsAdmin();
+
+        // Simulates another request creating the same role after validation passed.
+        Role::creating(fn (Role $role) => DB::table('roles')->insert([
+            'name' => $role->name, 'guard_name' => $role->guard_name,
+        ]));
+
+        $this->postJson(self::URI, $this->payload())
+            ->assertStatus(409)
+            ->assertExactJson(['message' => 'A role with this name already exists.']);
+
+        $this->assertDatabaseMissing('roles', ['name' => 'auditor']);
     }
 
     // --------------------------------------------------------------- update

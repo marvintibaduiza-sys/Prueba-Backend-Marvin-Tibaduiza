@@ -9,6 +9,7 @@ use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -74,6 +75,7 @@ class UserController extends Controller
             new OA\Response(response: 401, ref: '#/components/responses/Unauthenticated'),
             new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
             new OA\Response(response: 422, ref: '#/components/responses/ValidationFailed'),
+            new OA\Response(response: 409, ref: '#/components/responses/Conflict'),
             new OA\Response(response: 500, ref: '#/components/responses/ServerError'),
         ],
     )]
@@ -88,6 +90,11 @@ class UserController extends Controller
             $user->assignRole($request->validated('role'));
 
             DB::commit();
+        } catch (UniqueConstraintViolationException) {
+            // A concurrent request stored the same unique value after validation passed.
+            DB::rollBack();
+
+            throw new ConflictException('A user with this email already exists.');
         } catch (Throwable $e) {
             DB::rollBack();
 
@@ -189,6 +196,11 @@ class UserController extends Controller
             DB::rollBack();
 
             throw $e;
+        } catch (UniqueConstraintViolationException) {
+            // A concurrent request stored the same unique value after validation passed.
+            DB::rollBack();
+
+            throw new ConflictException('A user with this email already exists.');
         } catch (Throwable $e) {
             DB::rollBack();
 

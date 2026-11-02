@@ -8,6 +8,7 @@ use App\Http\Requests\Currency\StoreCurrencyRequest;
 use App\Http\Requests\Currency\UpdateCurrencyRequest;
 use App\Http\Resources\CurrencyResource;
 use App\Models\Currency;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -70,6 +71,7 @@ class CurrencyController extends Controller
             new OA\Response(response: 401, ref: '#/components/responses/Unauthenticated'),
             new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
             new OA\Response(response: 422, ref: '#/components/responses/ValidationFailed'),
+            new OA\Response(response: 409, ref: '#/components/responses/Conflict'),
             new OA\Response(response: 500, ref: '#/components/responses/ServerError'),
         ],
     )]
@@ -81,6 +83,11 @@ class CurrencyController extends Controller
             $currency = Currency::create($request->validated());
 
             DB::commit();
+        } catch (UniqueConstraintViolationException) {
+            // A concurrent request stored the same unique value after validation passed.
+            DB::rollBack();
+
+            throw new ConflictException('A currency with this name or code already exists.');
         } catch (Throwable $e) {
             DB::rollBack();
 
@@ -135,6 +142,7 @@ class CurrencyController extends Controller
             new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
             new OA\Response(response: 422, ref: '#/components/responses/ValidationFailed'),
+            new OA\Response(response: 409, ref: '#/components/responses/Conflict'),
             new OA\Response(response: 500, ref: '#/components/responses/ServerError'),
         ],
     )]
@@ -146,6 +154,11 @@ class CurrencyController extends Controller
             $currency->update($request->validated());
 
             DB::commit();
+        } catch (UniqueConstraintViolationException) {
+            // A concurrent request stored the same unique value after validation passed.
+            DB::rollBack();
+
+            throw new ConflictException('A currency with this name or code already exists.');
         } catch (Throwable $e) {
             DB::rollBack();
 

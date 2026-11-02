@@ -7,6 +7,7 @@ use App\Enums\RoleName;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -162,6 +163,22 @@ class UserTest extends TestCase
         $this->postJson(self::URI, $this->payload($overrides))
             ->assertUnprocessable()
             ->assertJsonValidationErrors($field);
+
+        $this->assertDatabaseMissing('users', ['email' => 'new.seller@test.com']);
+    }
+
+    public function test_concurrent_duplicate_email_returns_409_and_rolls_back(): void
+    {
+        $this->actingAsAdmin();
+
+        // Simulates another request registering the same email after validation passed.
+        User::creating(fn (User $user) => DB::table('users')->insert([
+            'name' => 'Concurrent', 'email' => $user->email, 'password' => 'x',
+        ]));
+
+        $this->postJson(self::URI, $this->payload())
+            ->assertStatus(409)
+            ->assertExactJson(['message' => 'A user with this email already exists.']);
 
         $this->assertDatabaseMissing('users', ['email' => 'new.seller@test.com']);
     }
