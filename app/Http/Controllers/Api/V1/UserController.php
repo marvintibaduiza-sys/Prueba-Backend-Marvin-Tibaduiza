@@ -132,9 +132,7 @@ class UserController extends Controller
      */
     private function ensureIsNotLastAdmin(User $user): void
     {
-        User::lockAdministrators();
-
-        if ($user->isLastAdmin()) {
+        if ($user->isLastAdminForUpdate()) {
             throw new ConflictException(self::LAST_ADMIN_MESSAGE);
         }
     }

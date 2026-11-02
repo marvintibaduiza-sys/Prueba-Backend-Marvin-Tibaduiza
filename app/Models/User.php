@@ -55,22 +55,22 @@ class User extends Authenticatable
 
     /**
      * Whether removing or demoting this user would leave the system without administrators.
+     *
+     * Must run inside a transaction. The admin assignments are read with SELECT ... FOR UPDATE:
+     * concurrent requests wait for each other, and the decision is taken from that locked read,
+     * which always sees the latest committed rows (a plain read could use a stale snapshot).
      */
-    public function isLastAdmin(): bool
+    public function isLastAdminForUpdate(): bool
     {
-        return $this->hasRole(RoleName::Admin->value)
-            && static::role(RoleName::Admin->value)->count() === 1;
-    }
+        $adminRole = Role::findByName(RoleName::Admin->value, Guard::getDefaultName(static::class));
 
-    /**
-     * Lock the admin role assignments until the current transaction ends, so two
-     * concurrent requests cannot both pass the "last admin" check (SELECT ... FOR UPDATE).
-     */
-    public static function lockAdministrators(): void
-    {
-        DB::table(config('permission.table_names.model_has_roles'))
-            ->where('role_id', Role::findByName(RoleName::Admin->value, Guard::getDefaultName(static::class))->getKey())
+        $adminIds = DB::table(config('permission.table_names.model_has_roles'))
+            ->where('role_id', $adminRole->getKey())
+            ->where('model_type', $this->getMorphClass())
             ->lockForUpdate()
-            ->get();
+            ->pluck(config('permission.column_names.model_morph_key'))
+            ->map(fn ($id) => (int) $id);
+
+        return $adminIds->count() === 1 && $adminIds->contains($this->getKey());
     }
 }
