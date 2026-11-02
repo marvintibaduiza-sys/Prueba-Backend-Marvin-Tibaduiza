@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Exceptions\ConflictException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\StoreProductRequest;
 use App\Http\Requests\Product\UpdateProductRequest;
@@ -134,17 +135,28 @@ class ProductController extends Controller
             new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
             new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
             new OA\Response(response: 422, ref: '#/components/responses/ValidationFailed'),
+            new OA\Response(response: 409, ref: '#/components/responses/Conflict'),
             new OA\Response(response: 500, ref: '#/components/responses/ServerError'),
         ],
     )]
     public function update(UpdateProductRequest $request, Product $product): ProductResource|JsonResponse
     {
+        $newCurrencyId = $request->validated('currency_id');
+
         try {
             DB::beginTransaction();
+
+            if ($newCurrencyId !== null && (int) $newCurrencyId !== (int) $product->currency_id) {
+                $this->ensureCurrencyHasNoPrice($product, (int) $newCurrencyId);
+            }
 
             $product->update($request->validated());
 
             DB::commit();
+        } catch (ConflictException $e) {
+            DB::rollBack();
+
+            throw $e;
         } catch (Throwable $e) {
             DB::rollBack();
 
@@ -188,5 +200,19 @@ class ProductController extends Controller
         }
 
         return response()->noContent();
+    }
+
+    /**
+     * Must run inside the transaction. Locks the product row (price registrations lock it too,
+     * so both operations run one after the other) and decides from a locked read of the prices,
+     * which always sees the latest committed rows.
+     */
+    private function ensureCurrencyHasNoPrice(Product $product, int $currencyId): void
+    {
+        Product::whereKey($product->getKey())->lockForUpdate()->first();
+
+        if ($product->prices()->where('currency_id', $currencyId)->lockForUpdate()->exists()) {
+            throw new ConflictException(UpdateProductRequest::PRICED_CURRENCY_MESSAGE);
+        }
     }
 }

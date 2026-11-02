@@ -83,9 +83,21 @@ class ProductPriceController extends Controller
         try {
             DB::beginTransaction();
 
-            $price = $product->prices()->create($request->validated());
+            // Locked read: waits for (and then sees) a concurrent change of the base currency,
+            // because updating the product's currency locks the same row.
+            $lockedProduct = Product::whereKey($product->getKey())->lockForUpdate()->firstOrFail();
+
+            if ((int) $lockedProduct->currency_id === (int) $request->validated('currency_id')) {
+                throw new ConflictException(StoreProductPriceRequest::BASE_CURRENCY_MESSAGE);
+            }
+
+            $price = $lockedProduct->prices()->create($request->validated());
 
             DB::commit();
+        } catch (ConflictException $e) {
+            DB::rollBack();
+
+            throw $e;
         } catch (UniqueConstraintViolationException) {
             // Another request registered the same currency after validation passed.
             DB::rollBack();

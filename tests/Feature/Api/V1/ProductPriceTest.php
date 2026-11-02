@@ -177,6 +177,27 @@ class ProductPriceTest extends TestCase
         $this->postJson($this->uri(), $this->payload())->assertCreated();
     }
 
+    public function test_base_currency_changed_concurrently_to_the_price_currency_returns_409(): void
+    {
+        $this->actingAsAdmin();
+        $eurId = $this->currency('EUR')->id;
+        $retrievals = 0;
+
+        // Right after route binding loads the product (still USD), another request makes EUR its
+        // base currency; validation passes on the stale model, the locked re-check must catch it.
+        Product::retrieved(function (Product $product) use (&$retrievals, $eurId) {
+            if (++$retrievals === 1) {
+                DB::table('products')->where('id', $product->id)->update(['currency_id' => $eurId]);
+            }
+        });
+
+        $this->postJson($this->uri(), $this->payload())
+            ->assertStatus(409)
+            ->assertExactJson(['message' => 'The price currency must differ from the product base currency.']);
+
+        $this->assertDatabaseCount('product_prices', 0);
+    }
+
     public function test_concurrent_duplicate_is_caught_by_the_database_and_returns_409(): void
     {
         $this->actingAsAdmin();

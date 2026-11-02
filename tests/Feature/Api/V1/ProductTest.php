@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductPrice;
 use Database\Seeders\CurrencySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\TestCase;
@@ -312,6 +313,31 @@ class ProductTest extends TestCase
         $this->putJson(self::URI."/{$product->id}", ['currency_id' => $this->eur()->id])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['currency_id' => 'The product already has a price in this currency.']);
+    }
+
+    public function test_price_registered_concurrently_in_the_new_base_currency_returns_409(): void
+    {
+        $this->actingAsAdmin();
+        $product = Product::factory()->for($this->usd())->create();
+        $eurId = $this->eur()->id;
+        $retrievals = 0;
+
+        // Validation passed (no EUR price yet). When the controller re-reads the product with a
+        // lock, another request has just registered an EUR price: the locked re-check must catch it.
+        Product::retrieved(function (Product $retrieved) use (&$retrievals, $eurId) {
+            if (++$retrievals === 2) {
+                DB::table('product_prices')->insert([
+                    'product_id' => $retrieved->id, 'currency_id' => $eurId, 'price' => 9,
+                    'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+        });
+
+        $this->putJson(self::URI."/{$product->id}", ['currency_id' => $eurId])
+            ->assertStatus(409)
+            ->assertExactJson(['message' => 'The product already has a price in this currency.']);
+
+        $this->assertSame($this->usd()->id, $product->fresh()->currency_id);
     }
 
     public function test_update_unknown_product_returns_404(): void

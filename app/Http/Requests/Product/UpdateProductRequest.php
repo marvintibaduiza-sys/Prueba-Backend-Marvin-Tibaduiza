@@ -8,6 +8,8 @@ use Illuminate\Validation\Rule;
 
 class UpdateProductRequest extends FormRequest
 {
+    public const PRICED_CURRENCY_MESSAGE = 'The product already has a price in this currency.';
+
     public function authorize(): bool
     {
         return $this->user()->can('update', $this->product());
@@ -38,7 +40,7 @@ class UpdateProductRequest extends FormRequest
     {
         return [
             ...ProductRules::messages(),
-            'currency_id.not_in' => 'The product already has a price in this currency.',
+            'currency_id.not_in' => self::PRICED_CURRENCY_MESSAGE,
         ];
     }
 

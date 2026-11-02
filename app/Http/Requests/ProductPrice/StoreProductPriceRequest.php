@@ -13,6 +13,8 @@ class StoreProductPriceRequest extends FormRequest
 {
     public const DUPLICATE_MESSAGE = 'The product already has a price in this currency.';
 
+    public const BASE_CURRENCY_MESSAGE = 'The price currency must differ from the product base currency.';
+
     public function authorize(): bool
     {
         return $this->user()->can('create', ProductPrice::class);
@@ -46,7 +48,7 @@ class StoreProductPriceRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'currency_id.not_in' => 'The price currency must differ from the product base currency.',
+            'currency_id.not_in' => self::BASE_CURRENCY_MESSAGE,
             'currency_id.unique' => self::DUPLICATE_MESSAGE,
         ];
     }
