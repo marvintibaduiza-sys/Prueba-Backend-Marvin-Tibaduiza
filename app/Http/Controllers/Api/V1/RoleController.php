@@ -46,6 +46,8 @@ class RoleController extends Controller
 
     public function store(StoreRoleRequest $request): JsonResponse
     {
+        Gate::authorize('grantPermissions', [Role::class, $request->validated('permissions')]);
+
         try {
             DB::beginTransaction();
 
@@ -76,6 +78,10 @@ class RoleController extends Controller
     public function update(UpdateRoleRequest $request, Role $role): RoleResource|JsonResponse
     {
         $this->ensureIsNotProtected($role);
+
+        if ($request->has('permissions')) {
+            Gate::authorize('grantPermissions', [Role::class, $request->validated('permissions')]);
+        }
 
         try {
             DB::beginTransaction();

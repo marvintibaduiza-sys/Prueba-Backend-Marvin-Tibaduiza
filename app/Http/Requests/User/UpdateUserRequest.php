@@ -3,15 +3,20 @@
 namespace App\Http\Requests\User;
 
 use App\Models\User;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class UpdateUserRequest extends FormRequest
 {
-    public function authorize(): bool
+    /**
+     * Returns the full policy response so a denial keeps its explanatory message.
+     */
+    public function authorize(): Response
     {
-        return $this->user()->can('update', $this->route('user'));
+        return Gate::inspect('update', $this->route('user'));
     }
 
     /**

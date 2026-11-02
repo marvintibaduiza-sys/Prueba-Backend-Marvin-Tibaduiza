@@ -319,14 +319,13 @@ class UserTest extends TestCase
 
     public function test_last_admin_cannot_be_demoted_or_deleted(): void
     {
+        // An actor holding every permission passes delegation, so only the last-admin rule can stop it.
         $lastAdmin = $this->userWithRole(RoleName::Admin);
-        $manager = User::factory()->create();
-        $manager->assignRole(Role::create(['name' => 'manager'])->givePermissionTo([
-            PermissionName::UsersView->value,
-            PermissionName::UsersUpdate->value,
-            PermissionName::UsersDelete->value,
-        ]));
-        Sanctum::actingAs($manager);
+        $coAdmin = User::factory()->create();
+        $coAdmin->assignRole(Role::create(['name' => 'co-admin', 'guard_name' => 'web'])->givePermissionTo(
+            array_map(fn (PermissionName $permission) => $permission->value, PermissionName::cases())
+        ));
+        Sanctum::actingAs($coAdmin);
 
         $this->putJson(self::URI."/{$lastAdmin->id}", ['role' => 'seller'])
             ->assertStatus(409)
@@ -337,6 +336,79 @@ class UserTest extends TestCase
             ->assertExactJson(['message' => 'The last administrator cannot be removed or demoted.']);
 
         $this->assertTrue($lastAdmin->fresh()->hasRole('admin'));
+    }
+
+    // ------------------------------------------------- privilege escalation
+
+    private function actingAsUserManager(array $extraPermissions = []): User
+    {
+        $manager = User::factory()->create();
+        $manager->assignRole(Role::create(['name' => 'manager', 'guard_name' => 'web'])->givePermissionTo([
+            PermissionName::UsersView->value,
+            PermissionName::UsersCreate->value,
+            PermissionName::UsersUpdate->value,
+            ...$extraPermissions,
+        ]));
+        Sanctum::actingAs($manager);
+
+        return $manager;
+    }
+
+    public function test_actor_cannot_create_a_user_with_a_role_they_could_not_grant(): void
+    {
+        $this->actingAsUserManager();
+
+        $this->postJson(self::URI, $this->payload(['role' => 'admin']))
+            ->assertForbidden()
+            ->assertExactJson(['message' => 'You cannot assign a role with permissions you do not hold.']);
+
+        $this->assertDatabaseMissing('users', ['email' => 'new.seller@test.com']);
+    }
+
+    public function test_actor_cannot_promote_a_user_to_a_role_they_could_not_grant(): void
+    {
+        // The manager holds the seller permissions, so it may manage the seller but not grant admin.
+        $this->actingAsUserManager(array_map(
+            fn (PermissionName $permission) => $permission->value,
+            PermissionName::forRole(RoleName::Seller)
+        ));
+        $seller = $this->userWithRole(RoleName::Seller);
+
+        $this->putJson(self::URI."/{$seller->id}", ['role' => 'admin'])
+            ->assertForbidden()
+            ->assertExactJson(['message' => 'You cannot assign a role with permissions you do not hold.']);
+
+        $this->assertFalse($seller->fresh()->hasRole('admin'));
+    }
+
+    public function test_actor_cannot_take_over_a_user_with_more_permissions(): void
+    {
+        $this->actingAsUserManager([PermissionName::UsersDelete->value]);
+        $admin = $this->userWithRole(RoleName::Admin);
+        $originalHash = $admin->password;
+
+        $this->putJson(self::URI."/{$admin->id}", [
+            'password' => 'taken-over-pass-1',
+            'password_confirmation' => 'taken-over-pass-1',
+        ])
+            ->assertForbidden()
+            ->assertExactJson(['message' => 'You cannot manage a user with permissions you do not hold.']);
+
+        $this->deleteJson(self::URI."/{$admin->id}")
+            ->assertForbidden()
+            ->assertExactJson(['message' => 'You cannot manage a user with permissions you do not hold.']);
+
+        $this->assertSame($originalHash, $admin->fresh()->password);
+    }
+
+    public function test_actor_can_assign_a_role_within_their_permissions(): void
+    {
+        $this->actingAsUserManager(array_map(
+            fn (PermissionName $permission) => $permission->value,
+            PermissionName::forRole(RoleName::Seller)
+        ));
+
+        $this->postJson(self::URI, $this->payload(['role' => 'seller']))->assertCreated();
     }
 
     // -------------------------------------------------------------- destroy

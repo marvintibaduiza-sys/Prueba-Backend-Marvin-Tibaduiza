@@ -312,6 +312,48 @@ class RoleTest extends TestCase
         $this->deleteJson(self::URI."/{$this->customRole()->id}")->assertUnauthorized();
     }
 
+    // ------------------------------------------------- privilege escalation
+
+    private function actingAsRoleManager(): User
+    {
+        $manager = User::factory()->create()->assignRole(
+            $this->customRole('manager', ['roles.view', 'roles.create', 'roles.update', 'products.view'])
+        );
+        Sanctum::actingAs($manager);
+
+        return $manager;
+    }
+
+    public function test_actor_cannot_create_a_role_with_permissions_they_do_not_hold(): void
+    {
+        $this->actingAsRoleManager();
+
+        $this->postJson(self::URI, ['name' => 'superuser', 'permissions' => ['products.view', 'users.delete']])
+            ->assertForbidden()
+            ->assertExactJson(['message' => 'You cannot grant permissions you do not hold.']);
+
+        $this->assertDatabaseMissing('roles', ['name' => 'superuser']);
+    }
+
+    public function test_actor_cannot_escalate_their_own_role(): void
+    {
+        $this->actingAsRoleManager();
+        $managerRole = $this->role('manager');
+
+        $this->putJson(self::URI."/{$managerRole->id}", ['permissions' => ['roles.update', 'users.delete']])
+            ->assertForbidden()
+            ->assertExactJson(['message' => 'You cannot grant permissions you do not hold.']);
+
+        $this->assertFalse($managerRole->fresh()->hasPermissionTo('users.delete'));
+    }
+
+    public function test_actor_can_grant_permissions_they_hold(): void
+    {
+        $this->actingAsRoleManager();
+
+        $this->postJson(self::URI, ['name' => 'viewer', 'permissions' => ['products.view']])->assertCreated();
+    }
+
     // ------------------------------------------------------------ end to end
 
     public function test_new_role_grants_exactly_its_permissions(): void

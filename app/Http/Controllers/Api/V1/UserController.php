@@ -33,6 +33,8 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request): JsonResponse
     {
+        Gate::authorize('assignRole', [User::class, $request->validated('role')]);
+
         try {
             DB::beginTransaction();
 
@@ -60,6 +62,10 @@ class UserController extends Controller
     {
         $newRole = $request->validated('role');
         $changesRole = $newRole !== null && ! $user->hasRole($newRole);
+
+        if ($changesRole) {
+            Gate::authorize('assignRole', [User::class, $newRole]);
+        }
 
         if ($changesRole && $user->is($request->user())) {
             throw new ConflictException('You cannot change your own role.');

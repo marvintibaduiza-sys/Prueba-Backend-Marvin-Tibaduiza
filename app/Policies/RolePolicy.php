@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Enums\PermissionName;
 use App\Models\User;
+use Illuminate\Auth\Access\Response;
 use Spatie\Permission\Models\Role;
 
 class RolePolicy
@@ -31,5 +32,20 @@ class RolePolicy
     public function delete(User $user, Role $role): bool
     {
         return $user->hasPermissionTo(PermissionName::RolesDelete->value);
+    }
+
+    /**
+     * Delegation rule: users may only grant permissions they already hold, so a role manager
+     * can never escalate their own (or anyone's) privileges beyond their own.
+     *
+     * @param  list<string>  $permissions
+     */
+    public function grantPermissions(User $user, array $permissions): Response
+    {
+        $notHeld = collect($permissions)->diff($user->getAllPermissions()->pluck('name'));
+
+        return $notHeld->isEmpty()
+            ? Response::allow()
+            : Response::deny('You cannot grant permissions you do not hold.');
     }
 }
