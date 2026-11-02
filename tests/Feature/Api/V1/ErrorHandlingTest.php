@@ -37,6 +37,24 @@ class ErrorHandlingTest extends TestCase
             ->assertExactJson(['message' => 'Resource not found.']);
     }
 
+    /**
+     * MySQL casts '1abc' to 1 when comparing with an integer key, so a route like
+     * /products/1abc would load product 1. Ids must be rejected at the routing level.
+     */
+    public function test_resource_ids_only_match_digits_in_every_route(): void
+    {
+        $checked = 0;
+
+        foreach (Route::getRoutes()->getRoutes() as $route) {
+            foreach (array_intersect($route->parameterNames(), ['product', 'currency', 'user', 'role']) as $parameter) {
+                $this->assertSame('[0-9]+', $route->wheres[$parameter] ?? null, "{$route->uri()} accepts non-numeric {$parameter}.");
+                $checked++;
+            }
+        }
+
+        $this->assertGreaterThan(0, $checked);
+    }
+
     public function test_protected_route_without_token_returns_json_401_without_accept_header(): void
     {
         Route::middleware('auth:sanctum')->get('/api/v1/_probe', fn () => 'ok');

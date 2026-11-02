@@ -2,15 +2,20 @@
 
 namespace App\Http\Requests\Role;
 
+use Illuminate\Auth\Access\Response;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
 class UpdateRoleRequest extends FormRequest
 {
-    public function authorize(): bool
+    /**
+     * Returns the full policy response so a denial keeps its explanatory message.
+     */
+    public function authorize(): Response
     {
-        return $this->user()->can('update', $this->role());
+        return Gate::inspect('update', $this->role());
     }
 
     /**

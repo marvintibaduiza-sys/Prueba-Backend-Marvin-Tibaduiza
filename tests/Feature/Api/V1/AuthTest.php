@@ -95,6 +95,19 @@ class AuthTest extends TestCase
             ->assertJsonValidationErrors($field);
     }
 
+    public function test_malformed_email_returns_422_and_is_still_throttled(): void
+    {
+        $payload = ['email' => ['user@test.com'], 'password' => 'secret'];
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/v1/auth/login', $payload)
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('email');
+        }
+
+        $this->postJson('/api/v1/auth/login', $payload)->assertTooManyRequests();
+    }
+
     public function test_login_is_throttled_after_five_attempts(): void
     {
         $this->createUser();

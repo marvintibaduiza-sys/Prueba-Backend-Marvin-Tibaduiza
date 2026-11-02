@@ -7,6 +7,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -33,6 +34,15 @@ class AppServiceProvider extends ServiceProvider
 
         // Role is a spatie model, outside App\Models, so its policy is not auto-discovered.
         Gate::policy(Role::class, RolePolicy::class);
+
+        // Route ids must be digits only: MySQL casts '1abc' to 1 when comparing with an
+        // integer key, so /products/1abc would otherwise load (or delete) product 1.
+        Route::patterns([
+            'product' => '[0-9]+',
+            'currency' => '[0-9]+',
+            'user' => '[0-9]+',
+            'role' => '[0-9]+',
+        ]);
     }
 
     private function configureRateLimiting(): void
@@ -40,8 +50,11 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
 
         // Brute-force protection: 5 login attempts per minute for each email + IP pair.
-        RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)->by(
-            Str::lower((string) $request->input('email')).'|'.$request->ip()
-        ));
+        // A non-string email (e.g. an array) still gets a key, so it is counted and then rejected with 422.
+        RateLimiter::for('login', function (Request $request) {
+            $email = $request->input('email');
+
+            return Limit::perMinute(5)->by(Str::lower(is_string($email) ? $email : '').'|'.$request->ip());
+        });
     }
 }

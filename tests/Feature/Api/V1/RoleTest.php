@@ -8,6 +8,7 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -345,6 +346,18 @@ class RoleTest extends TestCase
             ->assertExactJson(['message' => 'You cannot grant permissions you do not hold.']);
 
         $this->assertFalse($managerRole->fresh()->hasPermissionTo('users.delete'));
+    }
+
+    public function test_actor_cannot_strip_permissions_from_a_more_powerful_role(): void
+    {
+        $this->actingAsRoleManager();
+        $coAdmin = $this->customRole('co-admin', Permission::pluck('name')->all());
+
+        $this->putJson(self::URI."/{$coAdmin->id}", ['permissions' => ['products.view']])
+            ->assertForbidden()
+            ->assertExactJson(['message' => 'You cannot manage a role with permissions you do not hold.']);
+
+        $this->assertCount(18, $coAdmin->fresh()->permissions);
     }
 
     public function test_actor_can_grant_permissions_they_hold(): void

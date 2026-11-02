@@ -24,9 +24,18 @@ class RolePolicy
         return $user->hasPermissionTo(PermissionName::RolesCreate->value);
     }
 
-    public function update(User $user, Role $role): bool
+    public function update(User $user, Role $role): Response|bool
     {
-        return $user->hasPermissionTo(PermissionName::RolesUpdate->value);
+        if (! $user->hasPermissionTo(PermissionName::RolesUpdate->value)) {
+            return false;
+        }
+
+        // Delegation on the target: nobody may edit (e.g. strip) a role holding permissions they lack.
+        $notHeld = $role->permissions->pluck('name')->diff($user->getAllPermissions()->pluck('name'));
+
+        return $notHeld->isEmpty()
+            ? Response::allow()
+            : Response::deny('You cannot manage a role with permissions you do not hold.');
     }
 
     public function delete(User $user, Role $role): bool
