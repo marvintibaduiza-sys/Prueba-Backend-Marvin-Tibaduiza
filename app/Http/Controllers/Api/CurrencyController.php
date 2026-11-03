@@ -84,7 +84,7 @@ class CurrencyController extends Controller
 
             DB::commit();
         } catch (UniqueConstraintViolationException) {
-            // A concurrent request stored the same unique value after validation passed.
+            // Someone saved the same value at the same moment.
             DB::rollBack();
 
             throw new ConflictException('A currency with this name already exists.');
@@ -155,7 +155,7 @@ class CurrencyController extends Controller
 
             DB::commit();
         } catch (UniqueConstraintViolationException) {
-            // A concurrent request stored the same unique value after validation passed.
+            // Someone saved the same value at the same moment.
             DB::rollBack();
 
             throw new ConflictException('A currency with this name already exists.');

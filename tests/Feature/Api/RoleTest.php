@@ -176,7 +176,7 @@ class RoleTest extends TestCase
     {
         $this->actingAsAdmin();
 
-        // Simulates another request creating the same role after validation passed.
+        // Pretend another request saves the same value right after validation.
         Role::creating(fn (Role $role) => DB::table('roles')->insert([
             'name' => $role->name, 'guard_name' => $role->guard_name,
         ]));

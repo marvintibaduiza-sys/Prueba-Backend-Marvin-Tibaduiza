@@ -322,8 +322,7 @@ class ProductTest extends TestCase
         $eurId = $this->eur()->id;
         $retrievals = 0;
 
-        // Validation passed (no EUR price yet). When the controller re-reads the product with a
-        // lock, another request has just registered an EUR price: the locked re-check must catch it.
+        // Another request adds an EUR price right after validation.
         Product::retrieved(function (Product $retrieved) use (&$retrievals, $eurId) {
             if (++$retrievals === 2) {
                 DB::table('product_prices')->insert([

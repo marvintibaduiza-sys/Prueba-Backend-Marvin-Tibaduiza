@@ -42,7 +42,7 @@ class AuthController extends Controller
         $user = User::where('email', $request->validated('email'))->first();
         $passwordMatches = Hash::check($request->validated('password'), $user?->password ?? self::DUMMY_HASH);
 
-        // Same message for unknown email and wrong password: never reveal which accounts exist.
+        // Same error for both cases, so nobody can tell which emails exist.
         if (! $user || ! $passwordMatches) {
             throw ValidationException::withMessages(['email' => __('auth.failed')]);
         }

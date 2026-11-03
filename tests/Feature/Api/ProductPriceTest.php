@@ -183,8 +183,7 @@ class ProductPriceTest extends TestCase
         $eurId = $this->currency('EUR')->id;
         $retrievals = 0;
 
-        // Right after route binding loads the product (still USD), another request makes EUR its
-        // base currency; validation passes on the stale model, the locked re-check must catch it.
+        // Another request changes the base currency to EUR right after the product is loaded.
         Product::retrieved(function (Product $product) use (&$retrievals, $eurId) {
             if (++$retrievals === 1) {
                 DB::table('products')->where('id', $product->id)->update(['currency_id' => $eurId]);
@@ -203,7 +202,7 @@ class ProductPriceTest extends TestCase
         $this->actingAsAdmin();
         $eurId = $this->currency('EUR')->id;
 
-        // Simulates another request inserting the same price after validation passed.
+        // Pretend another request saves the same value right after validation.
         ProductPrice::creating(function (ProductPrice $price) use ($eurId) {
             DB::table('product_prices')->insert([
                 'product_id' => $price->product_id,

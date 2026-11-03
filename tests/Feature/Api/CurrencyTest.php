@@ -179,7 +179,7 @@ class CurrencyTest extends TestCase
     {
         $this->actingAsAdmin();
 
-        // Simulates another request inserting the same name after validation passed.
+        // Pretend another request saves the same value right after validation.
         Currency::creating(fn (Currency $currency) => DB::table('currencies')->insert([
             'name' => $currency->name, 'symbol' => '£', 'exchange_rate' => 1,
         ]));

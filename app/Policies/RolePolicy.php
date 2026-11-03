@@ -30,7 +30,7 @@ class RolePolicy
             return false;
         }
 
-        // Delegation on the target: nobody may edit (e.g. strip) a role holding permissions they lack.
+        // You can't edit a role with permissions you don't have.
         $notHeld = $role->permissions->pluck('name')->diff($user->getAllPermissions()->pluck('name'));
 
         return $notHeld->isEmpty()

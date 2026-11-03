@@ -18,7 +18,7 @@ class StoreCurrencyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // The name is the unique identifier of the currency (e.g. USD, EUR).
+            // The name identifies the currency (e.g. USD).
             'name' => ['required', 'string', 'max:50', 'unique:currencies,name'],
             'symbol' => ['required', 'string', 'max:5'],
             'exchange_rate' => ['required', 'numeric', 'gt:0', 'max:999999.999999', 'decimal:0,6'],

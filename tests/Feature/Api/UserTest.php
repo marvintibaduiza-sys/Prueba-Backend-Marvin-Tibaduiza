@@ -171,7 +171,7 @@ class UserTest extends TestCase
     {
         $this->actingAsAdmin();
 
-        // Simulates another request registering the same email after validation passed.
+        // Pretend another request saves the same value right after validation.
         User::creating(fn (User $user) => DB::table('users')->insert([
             'name' => 'Concurrent', 'email' => $user->email, 'password' => 'x',
         ]));
@@ -336,7 +336,7 @@ class UserTest extends TestCase
 
     public function test_last_admin_cannot_be_demoted_or_deleted(): void
     {
-        // An actor holding every permission passes delegation, so only the last-admin rule can stop it.
+        // This actor has every permission, so only the last-admin rule can stop it.
         $lastAdmin = $this->userWithRole(RoleName::Admin);
         $coAdmin = User::factory()->create();
         $coAdmin->assignRole(Role::create(['name' => 'co-admin', 'guard_name' => 'web'])->givePermissionTo(
@@ -384,7 +384,7 @@ class UserTest extends TestCase
 
     public function test_actor_cannot_promote_a_user_to_a_role_they_could_not_grant(): void
     {
-        // The manager holds the seller permissions, so it may manage the seller but not grant admin.
+        // The manager can handle sellers but can't give admin.
         $this->actingAsUserManager(array_map(
             fn (PermissionName $permission) => $permission->value,
             PermissionName::forRole(RoleName::Seller)
@@ -430,7 +430,7 @@ class UserTest extends TestCase
 
     public function test_user_with_several_roles_is_still_protected_as_last_admin(): void
     {
-        // Only admin, but also holding the seller role: sending "seller" is still a demotion.
+        // The only admin also has the seller role: sending "seller" still removes admin.
         $lastAdmin = $this->userWithRole(RoleName::Admin)->assignRole(RoleName::Seller->value);
         $coAdmin = User::factory()->create();
         $coAdmin->assignRole(Role::create(['name' => 'co-admin', 'guard_name' => 'web'])->givePermissionTo(

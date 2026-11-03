@@ -19,8 +19,7 @@ final class ProductRules
         $amount = ['required', 'numeric', 'max:'.self::MAX_AMOUNT, 'decimal:0,2'];
 
         return [
-            // Business rule: letters (any language, accents included), spaces and hyphens only,
-            // with at least one letter; digits, symbols, tabs and line breaks are rejected.
+            // Letters (accents too), spaces and hyphens. No digits.
             'name' => ['required', 'string', 'max:150', 'regex:/^(?=.*\pL)[\pL\pM \-]+$/u'],
             'description' => ['required', 'string', 'max:1000'],
             'price' => [...$amount, 'gt:0'],

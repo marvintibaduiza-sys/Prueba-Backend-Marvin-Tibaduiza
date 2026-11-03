@@ -74,7 +74,7 @@ class AuthTest extends TestCase
 
         $this->login(email: 'nobody@test.com')->assertUnprocessable();
 
-        // Equal work on both paths: response time must not reveal whether the email exists.
+        // Unknown emails must also check a hash, so the response time is the same.
         Hash::shouldHaveReceived('check')->once();
     }
 

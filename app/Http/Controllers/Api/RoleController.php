@@ -57,8 +57,7 @@ class RoleController extends Controller
 
         return RoleResource::collection(
             Role::query()
-                // Eloquent subquery instead of withCount('users'): spatie resolves that relation from
-                // the request guard ("sanctum"), which has no user provider, so it cannot build it here.
+                // withCount('users') fails here (spatie uses the sanctum guard), so count with a subquery.
                 ->addSelect(['users_count' => RoleAssignment::forUsers()
                     ->selectRaw('count(*)')
                     ->whereColumn('role_id', 'roles.id'),
@@ -97,7 +96,7 @@ class RoleController extends Controller
         try {
             DB::beginTransaction();
 
-            // Roles belong to the guard of the User model ("web"), not to the request guard ("sanctum").
+            // Roles use the User model's guard ("web"), not "sanctum".
             $role = Role::create([
                 'name' => $request->validated('name'),
                 'guard_name' => Guard::getDefaultName(User::class),
@@ -106,7 +105,7 @@ class RoleController extends Controller
 
             DB::commit();
         } catch (UniqueConstraintViolationException) {
-            // A concurrent request stored the same unique value after validation passed.
+            // Someone saved the same value at the same moment.
             DB::rollBack();
 
             throw new ConflictException('A role with this name already exists.');
@@ -195,7 +194,7 @@ class RoleController extends Controller
 
             DB::commit();
         } catch (UniqueConstraintViolationException) {
-            // A concurrent request stored the same unique value after validation passed.
+            // Someone saved the same value at the same moment.
             DB::rollBack();
 
             throw new ConflictException('A role with this name already exists.');
@@ -234,7 +233,7 @@ class RoleController extends Controller
         try {
             DB::beginTransaction();
 
-            // Locked read: a concurrent assignment of this role waits until we finish.
+            // Lock the assignments so nobody gets this role while we delete it.
             $isAssigned = RoleAssignment::ofRole($role)->lockForUpdate()->exists();
 
             if ($isAssigned) {

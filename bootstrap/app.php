@@ -18,16 +18,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // API clients are never redirected to a login page; they get a 401 instead.
+        // API clients get 401, not a redirect to a login page.
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : '/');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // API routes always answer in JSON, even without an "Accept: application/json" header.
+        // API routes always answer in JSON.
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson()
         );
 
-        // 4xx errors (404, 403, 405, 409, 429...): uniform body, no internal details.
+        // 4xx errors: simple JSON, no internal details.
         $exceptions->render(function (HttpExceptionInterface $e, Request $request) {
             if (! $request->is('api/*')) {
                 return null;
@@ -43,7 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
             return response()->json(['message' => $message], $status, $e->getHeaders());
         });
 
-        // Anything unexpected: generic 500, never the exception message or stack trace.
+        // Anything else: generic 500, details only in the log.
         $exceptions->render(function (Throwable $e, Request $request) {
             if (! $request->is('api/*')
                 || $e instanceof HttpExceptionInterface

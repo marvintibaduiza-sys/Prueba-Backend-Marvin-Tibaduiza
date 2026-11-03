@@ -35,11 +35,10 @@ class AppServiceProvider extends ServiceProvider
 
         Password::defaults(fn () => Password::min(8));
 
-        // Role is a spatie model, outside App\Models, so its policy is not auto-discovered.
+        // Role comes from spatie, so its policy is registered by hand.
         Gate::policy(Role::class, RolePolicy::class);
 
-        // Route ids must be digits only: MySQL casts '1abc' to 1 when comparing with an
-        // integer key, so /products/1abc would otherwise load (or delete) product 1.
+        // Ids must be numbers: MySQL reads '1abc' as 1.
         Route::patterns([
             'product' => '[0-9]+',
             'currency' => '[0-9]+',
@@ -79,8 +78,7 @@ class AppServiceProvider extends ServiceProvider
     {
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(60)->by($request->user()?->id ?: $request->ip()));
 
-        // Brute-force protection: 5 login attempts per minute for each email + IP pair.
-        // A non-string email (e.g. an array) still gets a key, so it is counted and then rejected with 422.
+        // Max 5 login tries per minute per email + IP.
         RateLimiter::for('login', function (Request $request) {
             $email = $request->input('email');
 

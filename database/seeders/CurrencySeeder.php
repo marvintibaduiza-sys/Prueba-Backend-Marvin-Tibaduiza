@@ -18,7 +18,7 @@ class CurrencySeeder extends Seeder
     public function run(): void
     {
         foreach (self::CURRENCIES as $currency) {
-            // firstOrCreate: re-seeding never overwrites a rate updated later through the API.
+            // Don't overwrite changes made through the API.
             Currency::firstOrCreate(['name' => $currency['name']], $currency);
         }
     }

@@ -24,7 +24,7 @@ class UpdateCurrencyRequest extends FormRequest
         return [
             'name' => [
                 'sometimes', 'required', 'string', 'max:50', Rule::unique('currencies', 'name')->ignore($currency),
-                // The base currency is identified by its name, so renaming it would lose the reference.
+                // USD is found by its name, so it can't be renamed.
                 function (string $attribute, mixed $value, Closure $fail) use ($currency) {
                     if ($currency->isBase() && $value !== $currency->name) {
                         $fail('The base currency name cannot be changed.');

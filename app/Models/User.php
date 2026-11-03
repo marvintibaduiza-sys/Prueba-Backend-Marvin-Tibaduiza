@@ -59,8 +59,6 @@ class User extends Authenticatable
     {
         $adminRole = Role::findByName(RoleName::Admin->value, Guard::getDefaultName(static::class));
 
-        // Locks the pivot rows directly: a whereHas() subquery would neither lock them
-        // nor see the latest committed rows under REPEATABLE READ.
         $adminIds = RoleAssignment::ofRole($adminRole)
             ->forUsers()
             ->lockForUpdate()

@@ -91,7 +91,7 @@ class UserController extends Controller
 
             DB::commit();
         } catch (UniqueConstraintViolationException) {
-            // A concurrent request stored the same unique value after validation passed.
+            // Someone saved the same value at the same moment.
             DB::rollBack();
 
             throw new ConflictException('A user with this email already exists.');
@@ -164,7 +164,7 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user): UserResource|JsonResponse
     {
         $newRole = $request->validated('role');
-        // Users end with exactly the sent role, so any other current role (e.g. admin) is a change.
+        // Users keep only the role sent, so any other role means a change.
         $changesRole = $newRole !== null && $user->getRoleNames()->all() !== [$newRole];
 
         if ($changesRole) {
@@ -198,7 +198,7 @@ class UserController extends Controller
 
             throw $e;
         } catch (UniqueConstraintViolationException) {
-            // A concurrent request stored the same unique value after validation passed.
+            // Someone saved the same value at the same moment.
             DB::rollBack();
 
             throw new ConflictException('A user with this email already exists.');
@@ -247,7 +247,6 @@ class UserController extends Controller
 
             $this->ensureIsNotLastAdmin($user);
 
-            // Revoke every active session before removing the account.
             $user->tokens()->delete();
             $user->delete();
 

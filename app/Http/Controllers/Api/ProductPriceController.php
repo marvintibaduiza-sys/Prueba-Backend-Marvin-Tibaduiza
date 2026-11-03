@@ -83,8 +83,7 @@ class ProductPriceController extends Controller
         try {
             DB::beginTransaction();
 
-            // Locked read: waits for (and then sees) a concurrent change of the base currency,
-            // because updating the product's currency locks the same row.
+            // Lock the product so its currency can't change at the same time.
             $lockedProduct = Product::whereKey($product->getKey())->lockForUpdate()->firstOrFail();
 
             if ((int) $lockedProduct->currency_id === (int) $request->validated('currency_id')) {
@@ -99,7 +98,7 @@ class ProductPriceController extends Controller
 
             throw $e;
         } catch (UniqueConstraintViolationException) {
-            // Another request registered the same currency after validation passed.
+            // Someone saved the same value at the same moment.
             DB::rollBack();
 
             throw new ConflictException(StoreProductPriceRequest::DUPLICATE_MESSAGE);
