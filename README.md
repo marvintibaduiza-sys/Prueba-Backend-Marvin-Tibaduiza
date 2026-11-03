@@ -9,7 +9,7 @@ RESTful API built with Laravel 12 to manage products and their prices in multipl
 - Role and permission authorization with **spatie/laravel-permission** (`admin` and `seller` roles, custom roles via the API).
 - JSON responses built with **API Resources**; uniform JSON errors.
 - Interactive **Swagger / OpenAPI** documentation.
-- 254 automated tests.
+- 279 automated tests.
 
 ## Tech stack
 
@@ -157,7 +157,7 @@ Every error is JSON with a `message`; validation errors also include `errors` pe
 php artisan test
 ```
 
-254 tests run on SQLite in memory. For every endpoint they cover the success case, `401`, `403`, `404`, each validation rule (`422`), business conflicts (`409`), transaction rollback on errors, token expiration and revocation, rate limiting, permission delegation and that the documentation covers every route.
+279 tests run on SQLite in memory. For every endpoint they cover the success case, `401`, `403`, `404`, each validation rule (`422`), business conflicts (`409`), transaction rollback on errors, token expiration and revocation, rate limiting, permission delegation and that the documentation covers every route.
 
 ## API documentation
 
