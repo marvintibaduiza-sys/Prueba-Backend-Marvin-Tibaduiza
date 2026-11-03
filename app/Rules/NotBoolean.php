@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * The "integer" rule accepts JSON true as 1. Ids must be real numbers, never booleans.
+ * "integer" accepts true as 1, but an id can't be a boolean.
  */
 class NotBoolean implements ValidationRule
 {

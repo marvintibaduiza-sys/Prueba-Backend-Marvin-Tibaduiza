@@ -53,11 +53,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Whether removing or demoting this user would leave the system without administrators.
-     *
-     * Must run inside a transaction. The admin assignments are read with SELECT ... FOR UPDATE:
-     * concurrent requests wait for each other, and the decision is taken from that locked read,
-     * which always sees the latest committed rows (a plain read could use a stale snapshot).
+     * Is this the last admin? Locks the admin rows so two requests can't remove both last admins at once.
      */
     public function isLastAdminForUpdate(): bool
     {

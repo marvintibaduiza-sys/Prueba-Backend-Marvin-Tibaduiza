@@ -4,13 +4,10 @@ namespace App\Http\Requests\Product;
 
 use App\Rules\NotBoolean;
 
-/**
- * Validation rules shared by the store and update product requests.
- */
 final class ProductRules
 {
     /**
-     * Largest value that fits a decimal(12,2) column.
+     * Biggest value a decimal(12,2) column can store.
      */
     public const MAX_AMOUNT = '9999999999.99';
 

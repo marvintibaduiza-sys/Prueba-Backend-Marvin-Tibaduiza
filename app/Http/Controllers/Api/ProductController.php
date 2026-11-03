@@ -203,9 +203,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Must run inside the transaction. Locks the product row (price registrations lock it too,
-     * so both operations run one after the other) and decides from a locked read of the prices,
-     * which always sees the latest committed rows.
+     * Locks the product so nobody adds a price in this currency while we change it.
      */
     private function ensureCurrencyHasNoPrice(Product $product, int $currencyId): void
     {

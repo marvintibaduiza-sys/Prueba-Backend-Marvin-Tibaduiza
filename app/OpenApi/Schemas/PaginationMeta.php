@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * Page information of a paginated list.
- */
 #[OA\Schema(
     schema: 'PaginationMeta',
     properties: [

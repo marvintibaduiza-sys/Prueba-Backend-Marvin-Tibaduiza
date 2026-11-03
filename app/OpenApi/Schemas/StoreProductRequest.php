@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * Data to create a product. Amounts accept a number or a numeric string with up to 2 decimals.
- */
 #[OA\Schema(
     schema: 'StoreProductRequest',
     required: ['name', 'description', 'price', 'tax_cost', 'manufacturing_cost'],

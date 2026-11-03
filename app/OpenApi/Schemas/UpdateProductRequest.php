@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * Partial update of a product: only the fields sent are validated and changed.
- */
 #[OA\Schema(
     schema: 'UpdateProductRequest',
     properties: [

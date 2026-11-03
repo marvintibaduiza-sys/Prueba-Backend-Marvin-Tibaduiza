@@ -39,8 +39,7 @@ class ErrorHandlingTest extends TestCase
     }
 
     /**
-     * MySQL casts '1abc' to 1 when comparing with an integer key, so a route like
-     * /products/1abc would load product 1. Ids must be rejected at the routing level.
+     * MySQL reads '1abc' as 1, so route ids must be digits only.
      */
     public function test_resource_ids_only_match_digits_in_every_route(): void
     {

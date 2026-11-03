@@ -44,8 +44,7 @@ class RolePolicy
     }
 
     /**
-     * Delegation rule: users may only grant permissions they already hold, so a role manager
-     * can never escalate their own (or anyone's) privileges beyond their own.
+     * You can only give permissions you already have.
      *
      * @param  list<string>  $permissions
      */

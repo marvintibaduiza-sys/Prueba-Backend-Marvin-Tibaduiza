@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * Price of a product in a currency other than its base currency.
- */
 #[OA\Schema(
     schema: 'ProductPrice',
     required: ['id', 'product_id', 'price', 'currency', 'created_at', 'updated_at'],

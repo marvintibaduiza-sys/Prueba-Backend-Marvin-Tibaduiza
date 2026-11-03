@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * A permission from the fixed, seeded catalog.
- */
 #[OA\Schema(
     schema: 'Permission',
     required: ['id', 'name'],

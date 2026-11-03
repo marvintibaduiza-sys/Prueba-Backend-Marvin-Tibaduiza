@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * A user with its roles and effective permissions.
- */
 #[OA\Schema(
     schema: 'User',
     required: ['id', 'name', 'email', 'roles', 'permissions', 'created_at', 'updated_at'],

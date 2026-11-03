@@ -16,14 +16,10 @@ use OpenApi\Attributes as OA;
 class AuthController extends Controller
 {
     /**
-     * Bcrypt hash of a random value (cost 12), checked when the email is unknown so both
-     * login paths take the same time and response timing cannot reveal existing accounts.
+     * Fake hash for unknown emails, so login takes the same time and doesn't reveal which emails exist.
      */
     private const DUMMY_HASH = '$2y$12$p8vUU3vDIOy1x4RXQef0Q.4QuaEEvapr5e5vB4nsiaufAIyFGLvlu';
 
-    /**
-     * Exchange valid credentials for an expiring Sanctum token.
-     */
     #[OA\Post(
         path: '/auth/login',
         operationId: 'auth.login',
@@ -56,9 +52,6 @@ class AuthController extends Controller
         return new AuthTokenResource($token, $user->load('roles.permissions'));
     }
 
-    /**
-     * Revoke the token used for the current request.
-     */
     #[OA\Post(
         path: '/auth/logout',
         operationId: 'auth.logout',
@@ -82,9 +75,6 @@ class AuthController extends Controller
         return response()->json(['message' => 'Logged out.']);
     }
 
-    /**
-     * Return the authenticated user with roles and effective permissions.
-     */
     #[OA\Get(
         path: '/auth/me',
         operationId: 'auth.me',

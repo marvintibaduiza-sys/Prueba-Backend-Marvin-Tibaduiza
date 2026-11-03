@@ -14,8 +14,7 @@ class StoreProductRequest extends FormRequest
     }
 
     /**
-     * The base currency is used when the client sends no currency (or null). If the base
-     * currency does not exist, the field stays empty and fails "required" with a clear 422.
+     * No currency sent? Use USD.
      */
     protected function prepareForValidation(): void
     {

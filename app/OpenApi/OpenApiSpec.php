@@ -5,8 +5,7 @@ namespace App\OpenApi;
 use OpenApi\Attributes as OA;
 
 /**
- * Root of the OpenAPI document: general info, server, authentication scheme,
- * tags and the error responses shared by every endpoint.
+ * General Swagger info: title, server, login and shared errors.
  */
 #[OA\Info(
     version: '1.0.0',

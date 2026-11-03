@@ -44,8 +44,7 @@ class UserPolicy
     }
 
     /**
-     * Delegation rule on the target: nobody may edit (e.g. reset the password of) or delete
-     * an account holding permissions they do not hold themselves — that would be a takeover.
+     * You can't edit or delete a user with more permissions than you.
      */
     private function canManage(User $user, User $model): Response
     {
@@ -57,8 +56,7 @@ class UserPolicy
     }
 
     /**
-     * Delegation rule: a role can only be assigned by users who hold every permission it grants,
-     * so nobody can create or promote an account above their own privileges.
+     * You can only assign a role if you have all its permissions.
      */
     public function assignRole(User $user, string $roleName): Response
     {

@@ -8,11 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Permission\Models\Role;
 
 /**
- * Eloquent model for the role assignment pivot table of spatie/laravel-permission
- * ("model_has_roles": which model holds which role).
- *
- * Used only to read assignments, mainly with row locks: assignments are written
- * through spatie (assignRole / syncRoles / removeRole).
+ * Model for spatie's model_has_roles table (who has which role). Read only.
  */
 class RoleAssignment extends Model
 {
@@ -42,7 +38,7 @@ class RoleAssignment extends Model
     }
 
     /**
-     * Assignments that belong to users (the pivot is polymorphic).
+     * Only users, the table can hold other models too.
      *
      * @param  Builder<self>  $query
      */

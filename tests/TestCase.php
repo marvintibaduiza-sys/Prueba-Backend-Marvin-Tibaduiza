@@ -19,9 +19,6 @@ abstract class TestCase extends BaseTestCase
         $this->app->make(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
-    /**
-     * Create a user with the given role and authenticate it through Sanctum.
-     */
     protected function actingAsRole(RoleName $role): User
     {
         if (Role::query()->doesntExist()) {

@@ -1444,7 +1444,6 @@
                 ],
                 "properties": {
                     "id": {
-                        "description": "A currency and its exchange rate against the base currency (USD).",
                         "type": "integer",
                         "example": 2
                     },
@@ -1481,7 +1480,6 @@
                 ],
                 "properties": {
                     "message": {
-                        "description": "Body of every error response.",
                         "type": "string",
                         "example": "Resource not found."
                     }
@@ -1495,7 +1493,6 @@
                 ],
                 "properties": {
                     "email": {
-                        "description": "Credentials exchanged for a token.",
                         "type": "string",
                         "format": "email",
                         "example": "admin@example.com",
@@ -1512,7 +1509,6 @@
             "PaginationLinks": {
                 "properties": {
                     "first": {
-                        "description": "Navigation links of a paginated list.",
                         "type": "string",
                         "format": "uri"
                     },
@@ -1536,7 +1532,6 @@
             "PaginationMeta": {
                 "properties": {
                     "current_page": {
-                        "description": "Page information of a paginated list.",
                         "type": "integer",
                         "example": 1
                     },
@@ -1576,7 +1571,6 @@
                 ],
                 "properties": {
                     "id": {
-                        "description": "A permission from the fixed, seeded catalog.",
                         "type": "integer",
                         "example": 1
                     },
@@ -1601,7 +1595,6 @@
                 ],
                 "properties": {
                     "id": {
-                        "description": "A product with its base price, costs and currency.",
                         "type": "integer",
                         "example": 1
                     },
@@ -1662,7 +1655,6 @@
                 ],
                 "properties": {
                     "id": {
-                        "description": "Price of a product in a currency other than its base currency.",
                         "type": "integer",
                         "example": 1
                     },
@@ -1702,7 +1694,6 @@
                 ],
                 "properties": {
                     "id": {
-                        "description": "A role with its permissions and the number of users holding it.",
                         "type": "integer",
                         "example": 2
                     },
@@ -1882,7 +1873,6 @@
                 ],
                 "properties": {
                     "name": {
-                        "description": "Data to create a user with a role.",
                         "type": "string",
                         "example": "John Smith",
                         "maxLength": 100
@@ -2010,7 +2000,6 @@
             "UpdateUserRequest": {
                 "properties": {
                     "name": {
-                        "description": "Partial update of a user: only the fields sent are validated and changed.",
                         "type": "string",
                         "example": "John A. Smith",
                         "maxLength": 100
@@ -2055,7 +2044,6 @@
                 ],
                 "properties": {
                     "id": {
-                        "description": "A user with its roles and effective permissions.",
                         "type": "integer",
                         "example": 1
                     },
@@ -2113,7 +2101,6 @@
                 ],
                 "properties": {
                     "message": {
-                        "description": "Body of a 422 response: a summary message plus the errors of each field.",
                         "type": "string",
                         "example": "The name field is required."
                     },

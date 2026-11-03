@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * Data to register the price of a product in another currency.
- */
 #[OA\Schema(
     schema: 'StoreProductPriceRequest',
     required: ['currency_id', 'price'],

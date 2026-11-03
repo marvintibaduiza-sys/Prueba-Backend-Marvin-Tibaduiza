@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * Data to create a role with its permissions.
- */
 #[OA\Schema(
     schema: 'StoreRoleRequest',
     required: ['name', 'permissions'],

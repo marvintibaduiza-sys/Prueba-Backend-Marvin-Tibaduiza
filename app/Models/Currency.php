@@ -25,9 +25,6 @@ class Currency extends Model
         ];
     }
 
-    /**
-     * The base (reference) currency, or null if it has not been seeded.
-     */
     public static function base(): ?self
     {
         return static::where('name', config('currency.base'))->first();
@@ -38,9 +35,6 @@ class Currency extends Model
         return $this->name === config('currency.base');
     }
 
-    /**
-     * Whether any product uses this currency as base or has a price in it.
-     */
     public function isInUse(): bool
     {
         return $this->products()->exists() || $this->prices()->exists();

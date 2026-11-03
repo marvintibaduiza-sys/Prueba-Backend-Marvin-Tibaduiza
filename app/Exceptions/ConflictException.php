@@ -5,8 +5,7 @@ namespace App\Exceptions;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
- * Raised when a request is valid but conflicts with the current state of a resource
- * (e.g. deleting a currency that is still in use). Rendered as HTTP 409.
+ * For valid requests that can't be done right now (e.g. deleting a currency in use). Returns 409.
  */
 class ConflictException extends HttpException
 {

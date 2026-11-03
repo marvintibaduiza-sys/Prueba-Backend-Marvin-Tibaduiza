@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * Data to create a currency.
- */
 #[OA\Schema(
     schema: 'StoreCurrencyRequest',
     required: ['name', 'symbol', 'exchange_rate'],

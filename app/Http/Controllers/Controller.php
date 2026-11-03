@@ -15,9 +15,6 @@ abstract class Controller
 
     private const MAX_PER_PAGE = 100;
 
-    /**
-     * Resolve the page size from the "per_page" query parameter, clamped to a safe range.
-     */
     protected function perPage(Request $request): int
     {
         $perPage = filter_var($request->query('per_page'), FILTER_VALIDATE_INT);
@@ -29,9 +26,6 @@ abstract class Controller
         return max(1, min($perPage, self::MAX_PER_PAGE));
     }
 
-    /**
-     * Log an unexpected failure and return a generic 500 response without internal details.
-     */
     protected function serverError(Throwable $e): JsonResponse
     {
         Log::error($e->getMessage(), ['exception' => $e]);

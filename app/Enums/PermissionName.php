@@ -3,8 +3,7 @@
 namespace App\Enums;
 
 /**
- * Single source of truth for every permission the API checks.
- * Permissions are fixed: they are seeded, never created through the API.
+ * All the permissions the API uses. Created by the seeder, not by the API.
  */
 enum PermissionName: string
 {
@@ -32,8 +31,6 @@ enum PermissionName: string
     case RolesDelete = 'roles.delete';
 
     /**
-     * Default permissions granted to each seeded role.
-     *
      * @return list<self>
      */
     public static function forRole(RoleName $role): array

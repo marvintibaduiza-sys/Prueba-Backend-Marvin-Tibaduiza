@@ -11,7 +11,7 @@ use Spatie\Permission\Models\Role;
 class UpdateRoleRequest extends FormRequest
 {
     /**
-     * Returns the full policy response so a denial keeps its explanatory message.
+     * Keep the policy message in the 403 response.
      */
     public function authorize(): Response
     {
@@ -19,8 +19,6 @@ class UpdateRoleRequest extends FormRequest
     }
 
     /**
-     * Partial updates are allowed: only the fields sent are validated.
-     *
      * @return array<string, array<int, mixed>>
      */
     public function rules(): array

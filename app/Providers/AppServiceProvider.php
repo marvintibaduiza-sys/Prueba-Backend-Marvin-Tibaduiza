@@ -51,8 +51,7 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Users and roles are looked up only for callers who manage them; anyone else gets 403
-     * for every id, so the 403/404 difference cannot reveal which accounts or roles exist.
+     * Users without user/role permissions get 403 for any id, so they can't guess which ids exist.
      */
     private function bindManagedModels(): void
     {

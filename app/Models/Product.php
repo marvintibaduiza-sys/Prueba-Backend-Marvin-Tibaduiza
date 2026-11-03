@@ -32,8 +32,6 @@ class Product extends Model
     }
 
     /**
-     * Base currency of the product's "price" attribute.
-     *
      * @return BelongsTo<Currency, $this>
      */
     public function currency(): BelongsTo
@@ -42,8 +40,6 @@ class Product extends Model
     }
 
     /**
-     * Prices registered in other currencies.
-     *
      * @return HasMany<ProductPrice, $this>
      */
     public function prices(): HasMany

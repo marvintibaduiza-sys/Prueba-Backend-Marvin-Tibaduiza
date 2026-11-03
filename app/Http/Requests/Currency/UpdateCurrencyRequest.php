@@ -15,8 +15,6 @@ class UpdateCurrencyRequest extends FormRequest
     }
 
     /**
-     * Partial updates are allowed: only the fields sent are validated.
-     *
      * @return array<string, array<int, mixed>>
      */
     public function rules(): array

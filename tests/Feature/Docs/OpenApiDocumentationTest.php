@@ -12,7 +12,7 @@ class OpenApiDocumentationTest extends TestCase
     private static ?array $document = null;
 
     /**
-     * Generate the OpenAPI document once for the whole class.
+     * Generate the docs once for all the tests.
      */
     private function document(): array
     {
@@ -25,8 +25,6 @@ class OpenApiDocumentationTest extends TestCase
     }
 
     /**
-     * Every documented API route as "method path" pairs, relative to the /api server URL.
-     *
      * @return list<array{0: string, 1: string}>
      */
     private function apiOperations(): array

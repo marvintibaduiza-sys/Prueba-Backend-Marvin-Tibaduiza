@@ -33,7 +33,7 @@ class UserTest extends TestCase
     }
 
     /**
-     * A valid store payload; a null override removes that field.
+     * Valid data for the request. Pass null to drop a field.
      */
     private function payload(array $overrides = []): array
     {

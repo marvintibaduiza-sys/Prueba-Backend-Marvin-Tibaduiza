@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * Data to create a user with a role.
- */
 #[OA\Schema(
     schema: 'StoreUserRequest',
     required: ['name', 'email', 'password', 'password_confirmation', 'role'],

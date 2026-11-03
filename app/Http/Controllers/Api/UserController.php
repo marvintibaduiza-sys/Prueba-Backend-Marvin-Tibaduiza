@@ -266,7 +266,7 @@ class UserController extends Controller
     }
 
     /**
-     * Must run inside the transaction: the lock is held until commit or rollback.
+     * Run inside the transaction so the lock holds until commit.
      */
     private function ensureIsNotLastAdmin(User $user): void
     {
@@ -276,8 +276,7 @@ class UserController extends Controller
     }
 
     /**
-     * After a password change, every session of that user is revoked, except the one
-     * making the request when users change their own password.
+     * After a password change, log out the user's other sessions.
      */
     private function revokeOtherSessions(Request $request, User $user): void
     {

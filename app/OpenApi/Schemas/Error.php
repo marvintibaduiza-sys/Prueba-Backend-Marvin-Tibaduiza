@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * Body of every error response.
- */
 #[OA\Schema(
     schema: 'Error',
     required: ['message'],

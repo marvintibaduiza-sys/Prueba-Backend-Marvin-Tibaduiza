@@ -9,8 +9,7 @@ use RecursiveIteratorIterator;
 class ArchitectureTest extends TestCase
 {
     /**
-     * The assessment requires Eloquent for every database interaction: application code must
-     * not query tables through the query builder (DB::table / raw statements).
+     * The assessment asks for Eloquent: no DB::table in app code.
      */
     public function test_application_code_uses_eloquent_instead_of_the_query_builder(): void
     {

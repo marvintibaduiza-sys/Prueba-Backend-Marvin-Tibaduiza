@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * A product with its base price, costs and currency.
- */
 #[OA\Schema(
     schema: 'Product',
     required: ['id', 'name', 'description', 'price', 'tax_cost', 'manufacturing_cost', 'currency', 'created_at', 'updated_at'],

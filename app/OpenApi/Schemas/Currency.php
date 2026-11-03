@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * A currency and its exchange rate against the base currency (USD).
- */
 #[OA\Schema(
     schema: 'Currency',
     required: ['id', 'name', 'symbol', 'exchange_rate', 'created_at', 'updated_at'],

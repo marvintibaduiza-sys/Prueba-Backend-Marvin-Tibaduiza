@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * Navigation links of a paginated list.
- */
 #[OA\Schema(
     schema: 'PaginationLinks',
     properties: [

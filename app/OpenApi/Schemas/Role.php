@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * A role with its permissions and the number of users holding it.
- */
 #[OA\Schema(
     schema: 'Role',
     required: ['id', 'name', 'permissions', 'users_count', 'created_at', 'updated_at'],

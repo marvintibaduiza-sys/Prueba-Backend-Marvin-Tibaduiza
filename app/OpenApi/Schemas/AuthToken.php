@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * Bearer token issued by a successful login.
- */
 #[OA\Schema(
     schema: 'AuthToken',
     required: ['token', 'token_type', 'expires_at', 'user'],

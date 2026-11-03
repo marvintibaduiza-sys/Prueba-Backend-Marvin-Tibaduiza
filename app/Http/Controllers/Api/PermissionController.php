@@ -13,7 +13,7 @@ use Spatie\Permission\Models\Role;
 class PermissionController extends Controller
 {
     /**
-     * Permissions are a fixed catalog (seeded), so they are listed without pagination.
+     * Fixed list, so no pagination.
      */
     #[OA\Get(
         path: '/permissions',

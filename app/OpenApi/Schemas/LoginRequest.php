@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * Credentials exchanged for a token.
- */
 #[OA\Schema(
     schema: 'LoginRequest',
     required: ['email', 'password'],

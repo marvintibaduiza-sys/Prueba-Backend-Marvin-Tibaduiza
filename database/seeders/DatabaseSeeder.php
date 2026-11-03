@@ -7,10 +7,7 @@ use Illuminate\Database\Seeder;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Seed the application's database.
-     *
-     * Model events stay enabled: spatie/laravel-permission refreshes its
-     * permission cache through them while roles and permissions are created.
+     * Keep model events on: spatie needs them to refresh its permission cache.
      */
     public function run(): void
     {

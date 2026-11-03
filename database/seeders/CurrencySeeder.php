@@ -8,7 +8,7 @@ use Illuminate\Database\Seeder;
 class CurrencySeeder extends Seeder
 {
     /**
-     * Rates are "units of the currency per 1 USD" (USD is the base: 1 USD = 0.89 EUR).
+     * Rates are per 1 USD: 1 USD = 0.89 EUR.
      */
     private const CURRENCIES = [
         ['name' => 'USD', 'symbol' => '$', 'exchange_rate' => 1],

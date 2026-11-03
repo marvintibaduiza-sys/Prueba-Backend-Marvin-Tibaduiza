@@ -8,7 +8,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
- * The domain tables follow the data model given in the assessment, plus Eloquent timestamps.
+ * Tables must match the data model of the assessment.
  */
 class SchemaTest extends TestCase
 {

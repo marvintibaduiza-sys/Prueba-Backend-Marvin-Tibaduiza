@@ -4,9 +4,6 @@ namespace App\OpenApi\Schemas;
 
 use OpenApi\Attributes as OA;
 
-/**
- * Body of a 422 response: a summary message plus the errors of each field.
- */
 #[OA\Schema(
     schema: 'ValidationError',
     required: ['message', 'errors'],
