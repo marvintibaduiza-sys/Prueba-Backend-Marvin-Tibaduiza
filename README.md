@@ -151,30 +151,6 @@ Every error is JSON with a `message`; validation errors also include `errors` pe
 { "message": "The name field is required.", "errors": { "name": ["The name field is required."] } }
 ```
 
-## Architecture
-
-Each request follows the same path:
-
-```
-Route (grouped, auth:sanctum, only the verbs needed)
-  → Form Request   authorize() through the Policy + validation rules
-  → Controller     try { DB::beginTransaction() … DB::commit() } catch { DB::rollBack() }
-  → API Resource   shapes the JSON response
-```
-
-| Folder | Content |
-|---|---|
-| `app/Http/Controllers/Api` | API controllers |
-| `app/Http/Requests` | Form Requests (validation and authorization) |
-| `app/Http/Resources` | API Resources |
-| `app/Policies` | Permission checks per model |
-| `app/Enums` | `PermissionName`, `RoleName` |
-| `app/Models` | Eloquent models and relationships |
-| `app/OpenApi` | OpenAPI root and schemas |
-| `database/migrations`, `database/seeders`, `database/factories` | Schema, initial data, test data |
-| `bootstrap/app.php` | JSON error handling |
-| `routes/api.php` | Routes |
-
 ## Tests
 
 ```bash
